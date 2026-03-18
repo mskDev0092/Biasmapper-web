@@ -129,9 +129,18 @@ export function clearAPIConfig(): void {
 
 /**
  * Check if API is configured and ready to use
+ * For local services (localhost), API key is optional
  */
 export function isAPIConfigured(): boolean {
   const config = getAPIConfig();
+  const isLocal = config.endpoint?.includes("localhost");
+
+  // Local services only need endpoint and model
+  if (isLocal) {
+    return !!(config.endpoint && config.model);
+  }
+
+  // Remote services need endpoint and API key
   return !!(config.apiKey && config.endpoint);
 }
 
@@ -146,6 +155,11 @@ export const PREDEFINED_ENDPOINTS = [
     name: "Ollama (Local)",
     endpoint: "http://localhost:11434/v1",
     models: ["llama3.2", "llama3.1", "mistral", "codellama"],
+  },
+  {
+    name: "LM-Studio",
+    endpoint: "http://localhost:8000/v1",
+    models: ["local-model"],
   },
   {
     name: "Together AI",

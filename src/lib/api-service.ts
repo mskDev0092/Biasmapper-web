@@ -5,6 +5,12 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface OutletData {
+  name: string;
+  headlines: string[];
+  description?: string;
+}
+
 export interface ChatCompletionResponse {
   choices: Array<{
     message: {
@@ -46,26 +52,36 @@ export async function createChatCompletion(
 ): Promise<string> {
   const apiConfig = config || getAPIConfig();
 
-  if (!apiConfig.apiKey) {
-    throw new Error(
-      "API key not configured. Please configure your API settings.",
-    );
-  }
-
   if (!apiConfig.endpoint) {
     throw new Error(
       "API endpoint not configured. Please configure your API settings.",
     );
   }
 
+  // Check if this is a local service (localhost)
+  const isLocal = apiConfig.endpoint.includes("localhost");
+
+  // For remote services, require API key
+  if (!isLocal && !apiConfig.apiKey) {
+    throw new Error(
+      "API key not configured. Please configure your API settings.",
+    );
+  }
+
   // Call the external API directly from browser
   // API key is decrypted from localStorage for this request only
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  // Only add Authorization header if API key exists (not needed for local services)
+  if (apiConfig.apiKey) {
+    headers["Authorization"] = `Bearer ${apiConfig.apiKey}`;
+  }
+
   const response = await fetch(`${apiConfig.endpoint}/chat/completions`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiConfig.apiKey}`,
-    },
+    headers,
     body: JSON.stringify({
       model: apiConfig.model,
       messages,
@@ -142,7 +158,7 @@ TEXT TO ANALYZE:
 ${text}
 """
 
-Return ONLY valid JSON with this structure:
+Return ONLY valid JSON (MUST be object, not array). Do not include any markdown, code blocks, or text before/after JSON:
 {
   "dominant_bias": "CODE",
   "secondary_bias": "CODE", 
@@ -157,10 +173,60 @@ Return ONLY valid JSON with this structure:
     { role: "user", content: prompt },
   ]);
 
-  // Extract JSON from response
-  const jsonMatch = response.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    return JSON.parse(jsonMatch[0]);
+  // Clean response - remove markdown and extra whitespace
+  let cleanResponse = response
+    .replace(/```json\n?/g, "")
+    .replace(/```\n?/g, "")
+    .replace(/^[\s\n]*/, "")
+    .replace(/[\s\n]*$/, "")
+    .trim();
+
+  // Extract JSON from response - find first { and last }
+  const startIdx = cleanResponse.indexOf("{");
+  const endIdx = cleanResponse.lastIndexOf("}");
+
+  if (startIdx >= 0 && endIdx > startIdx) {
+    try {
+      const jsonStr = cleanResponse.substring(startIdx, endIdx + 1);
+      const parsed = JSON.parse(jsonStr);
+
+      // Validate it's an object (not array)
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        // Ensure all required fields exist
+        if (
+          parsed.dominant_bias &&
+          parsed.secondary_bias &&
+          typeof parsed.confidence === "number"
+        ) {
+          return {
+            dominant_bias: parsed.dominant_bias,
+            secondary_bias: parsed.secondary_bias,
+            confidence: Math.min(1, Math.max(0, parsed.confidence)),
+            analysis: parsed.analysis || "",
+            key_themes: Array.isArray(parsed.key_themes)
+              ? parsed.key_themes
+              : [],
+            narrative_tone: parsed.narrative_tone || "",
+          };
+        }
+      }
+
+      console.error(
+        "Missing required fields in parsed response:",
+        JSON.stringify(parsed).substring(0, 100),
+      );
+    } catch (e) {
+      console.error("Failed to parse JSON:", e);
+      console.error(
+        "Attempted JSON:",
+        cleanResponse.substring(startIdx, Math.min(endIdx + 1, startIdx + 200)),
+      );
+    }
+  } else {
+    console.error(
+      "No JSON object found in response. Response:",
+      cleanResponse.substring(0, 300),
+    );
   }
 
   throw new Error("Failed to parse bias analysis response");
@@ -177,12 +243,17 @@ export async function analyzeMultipleOutlets(
         ? `Outlet: ${outlet.name} - ${outlet.description}`
         : `Outlet: ${outlet.name}`,
       "Headlines:",
-      ...outlet.headlines.map((h) => `- ${h}`),
+      ...outlet.headlines.slice(0, 5).map((h) => `- ${h}`),
     ].join("\n");
 
     try {
       const analysis = await analyzeTextBias(text, outlet.name);
-      results.push({ outlet: outlet.name, ...analysis });
+
+      // Ensure the outlet name is included
+      results.push({
+        outlet: outlet.name,
+        ...analysis,
+      });
     } catch (error) {
       console.error(`Failed to analyze ${outlet.name}:`, error);
       // Use default analysis on failure
@@ -191,7 +262,7 @@ export async function analyzeMultipleOutlets(
         dominant_bias: "C",
         secondary_bias: "T+",
         confidence: 0.5,
-        analysis: "Unable to analyze - API error",
+        analysis: "Unable to analyze - please try again",
         key_themes: ["general news"],
         narrative_tone: "Unknown",
       });
@@ -214,36 +285,106 @@ export async function analyzeNarratives(
   trending_topics: string[];
   bias_tensions: string;
 }> {
-  const prompt = `Based on the following media bias analysis results, identify dominant narratives:
+  // Provide fallback if input is empty
+  if (analyses.length === 0) {
+    return {
+      narratives: [
+        {
+          title: "Awaiting Analysis",
+          description: "Analyzing media narratives...",
+          promoted_by: "C",
+          opposed_by: "C",
+          intensity: "low",
+        },
+      ],
+      trending_topics: [],
+      bias_tensions: "Analysis in progress",
+    };
+  }
+
+  const prompt = `Based on the following media bias analysis results, identify major narratives:
 
 ${analyses.map((a) => `${a.outlet}: ${a.dominant_bias}`).join("\n")}
 
-Identify 5 major narratives and return ONLY valid JSON:
+Return ONLY a JSON object (no markdown, no code blocks) with this structure:
 {
   "narratives": [
-    {
-      "title": "Narrative title",
-      "description": "Description",
-      "promoted_by": "Bias code",
-      "opposed_by": "Opposing bias code",
-      "intensity": "low/medium/high"
-    }
+    {"title": "Title", "description": "Description", "promoted_by": "CODE", "opposed_by": "CODE", "intensity": "low|medium|high"}
   ],
-  "trending_topics": ["topic1", "topic2", "topic3", "topic4", "topic5"],
-  "bias_tensions": "Description of major tensions"
+  "trending_topics": ["topic1", "topic2", "topic3"],
+  "bias_tensions": "Description"
 }`;
 
-  const response = await createChatCompletion([
-    { role: "system", content: BIASMAPPER_SYSTEM_PROMPT },
-    { role: "user", content: prompt },
-  ]);
+  try {
+    const response = await createChatCompletion([
+      {
+        role: "system",
+        content:
+          BIASMAPPER_SYSTEM_PROMPT +
+          "\n\nReturn ONLY a JSON object with narratives array. Do not include markdown backticks, code blocks, or any text before/after the JSON.",
+      },
+      { role: "user", content: prompt },
+    ]);
 
-  const jsonMatch = response.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    return JSON.parse(jsonMatch[0]);
+    // Clean response - remove all markdown
+    let cleanResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .replace(/`/g, "")
+      .trim();
+
+    // Find the JSON object
+    const startIndex = cleanResponse.indexOf("{");
+    const endIndex = cleanResponse.lastIndexOf("}");
+
+    if (startIndex < 0 || endIndex < 0) {
+      throw new Error("No JSON object found in response");
+    }
+
+    const jsonStr = cleanResponse.substring(startIndex, endIndex + 1);
+    const parsed = JSON.parse(jsonStr);
+
+    // Validate structure
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const narratives = (parsed.narratives || [])
+        .filter(
+          (n: any) =>
+            n.title &&
+            n.description &&
+            n.promoted_by &&
+            n.opposed_by &&
+            n.intensity,
+        )
+        .slice(0, 5);
+
+      if (narratives.length > 0) {
+        return {
+          narratives,
+          trending_topics: (parsed.trending_topics || []).slice(0, 5),
+          bias_tensions:
+            parsed.bias_tensions || "Competing narratives detected",
+        };
+      }
+    }
+
+    throw new Error("Invalid narrative structure after parsing");
+  } catch (error) {
+    console.error("Narrative analysis error:", error);
+    // Return static fallback on error
+    return {
+      narratives: [
+        {
+          title: "Analysis Error",
+          description: "Please refresh and try again",
+          promoted_by: "C",
+          opposed_by: "C",
+          intensity: "low",
+        },
+      ],
+      trending_topics: [],
+      bias_tensions: "Retry analysis",
+    };
   }
-
-  throw new Error("Failed to parse narrative analysis");
 }
 
 // Debiasing function
@@ -258,7 +399,7 @@ export async function debiasText(text: string): Promise<{
 ${text}
 """
 
-Return ONLY valid JSON:
+Return ONLY valid JSON (do not include markdown or code blocks):
 {
   "original_bias": "CODE",
   "neutralized_text": "The rewritten neutral version",
@@ -270,14 +411,60 @@ Return ONLY valid JSON:
       role: "system",
       content:
         BIASMAPPER_SYSTEM_PROMPT +
-        "\n\nYou can also rewrite text to be more neutral while preserving factual accuracy.",
+        "\n\nYou can rewrite text to be more neutral while preserving factual accuracy. Return only JSON, no markdown or extra text.",
     },
     { role: "user", content: prompt },
   ]);
 
-  const jsonMatch = response.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    return JSON.parse(jsonMatch[0]);
+  // Clean response
+  let cleanResponse = response
+    .replace(/```json\n?/g, "")
+    .replace(/```\n?/g, "")
+    .replace(/`/g, "")
+    .trim();
+
+  // Extract JSON object
+  const startIdx = cleanResponse.indexOf("{");
+  const endIdx = cleanResponse.lastIndexOf("}");
+
+  if (startIdx >= 0 && endIdx > startIdx) {
+    try {
+      const jsonStr = cleanResponse.substring(startIdx, endIdx + 1);
+      const parsed = JSON.parse(jsonStr);
+
+      // Validate structure
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed) &&
+        parsed.original_bias &&
+        parsed.neutralized_text
+      ) {
+        return {
+          original_bias: parsed.original_bias,
+          neutralized_text: parsed.neutralized_text,
+          changes_made: Array.isArray(parsed.changes_made)
+            ? parsed.changes_made
+            : [],
+        };
+      }
+
+      console.error(
+        "Missing required debias fields:",
+        JSON.stringify(parsed).substring(0, 100),
+      );
+    } catch (e) {
+      console.error("Failed to parse debias JSON:", e);
+      console.error(
+        "Attempted JSON:",
+        cleanResponse.substring(startIdx, Math.min(endIdx + 1, startIdx + 200)),
+      );
+    }
+  } else {
+    console.error(
+      "No JSON object found in debias response:",
+      cleanResponse.substring(0, 300),
+    );
   }
 
   throw new Error("Failed to parse debiasing response");
@@ -300,15 +487,297 @@ Remember:
 - T++/T+/T = Establishment/Mainstream alignment
 - B/B+/B++ = Oppositional/Grassroots alignment
 
-Write compelling content that reflects this perspective.`;
+Write compelling content that reflects this perspective.
 
-  return createChatCompletion([
+IMPORTANT: Return ONLY the text content, not JSON or arrays.`;
+
+  const response = await createChatCompletion([
     {
       role: "system",
       content:
         BIASMAPPER_SYSTEM_PROMPT +
-        "\n\nYou can also generate content with specific bias perspectives.",
+        "\n\nYou can also generate content with specific bias perspectives. Always return plain text, never JSON arrays.",
     },
     { role: "user", content: prompt },
   ]);
+
+  // Ensure we return a string, not an array or JSON
+  if (Array.isArray(response)) {
+    return response.join(" ");
+  }
+
+  if (typeof response === "object") {
+    return JSON.stringify(response);
+  }
+
+  return response.trim();
+}
+
+/**
+ * Web Search Integration via LM-Studio
+ * Uses LM-Studio to search for real news headlines
+ */
+export async function searchWebForNews(
+  query: string,
+  newsOutlets?: string[],
+): Promise<string[]> {
+  const outlets = newsOutlets?.join(", ") || "CNN, BBC, Reuters";
+  const prompt = `Use your web search capability to find the latest news headlines about: "${query}"
+Prioritize reporting from: ${outlets}
+
+Search comprehensively and list 5-10 recent, accurate, verified headlines from credible news sources.
+Return ONLY a JSON array of headline strings (no markdown, no code blocks):
+["Headline 1", "Headline 2", "Headline 3", "Headline 4", "Headline 5"]`;
+
+  try {
+    const response = await createChatCompletion([
+      {
+        role: "system",
+        content:
+          "You are an advanced news research assistant with real-time web search capabilities. You have access to current information and can retrieve live news. Always search for the most recent, accurate, and verified headlines. Return responses as valid JSON arrays only, no markdown or extra text.",
+      },
+      { role: "user", content: prompt },
+    ]);
+
+    // Clean response
+    let cleanResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    // Extract JSON array from response
+    const startIdx = cleanResponse.indexOf("[");
+    const endIdx = cleanResponse.lastIndexOf("]");
+
+    if (startIdx >= 0 && endIdx > startIdx) {
+      try {
+        const jsonStr = cleanResponse.substring(startIdx, endIdx + 1);
+        const parsed = JSON.parse(jsonStr);
+        // Ensure we get an array of strings
+        if (Array.isArray(parsed)) {
+          const headlines = parsed
+            .filter((item) => typeof item === "string" && item.length > 5)
+            .slice(0, 10);
+          if (headlines.length > 0) {
+            console.log(
+              `✅ Retrieved ${headlines.length} headlines from web search`,
+            );
+            return headlines;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to parse web search response:", e);
+        console.error(
+          "Attempted JSON:",
+          cleanResponse.substring(
+            startIdx,
+            Math.min(endIdx + 1, startIdx + 200),
+          ),
+        );
+      }
+    } else {
+      console.warn(
+        "No JSON array found in web search response. Response:",
+        cleanResponse.substring(0, 150),
+      );
+    }
+
+    return [];
+  } catch (error) {
+    console.error("Web search via LM-Studio failed:", error);
+    return [];
+  }
+}
+
+/**
+ * Search for outlet-specific news via LM-Studio
+ * Primary method - uses LM-Studio's web search capability
+ */
+export async function searchOutletNews(outletName: string): Promise<string[]> {
+  const prompt = `Search the web for the latest news headlines directly from ${outletName}.
+Find their most recent articles, breaking news, and current coverage.
+
+Use search tools to retrieve:
+- Latest headlines from ${outletName}
+- Recent major stories
+- Breaking news
+- Current coverage on major topics
+
+Return a JSON array of 5-10 recent verified headlines (no markdown, no code blocks):
+["Headline 1", "Headline 2", "Headline 3", "Headline 4", "Headline 5"]`;
+
+  try {
+    const response = await createChatCompletion([
+      {
+        role: "system",
+        content:
+          "You are a news aggregation assistant with real-time web search and access to current information from news outlets. Search the web to retrieve the latest headlines from the specified outlet. Return ONLY a valid JSON array of headline strings. Do not include any other text, markdown, or formatting.",
+      },
+      { role: "user", content: prompt },
+    ]);
+
+    // Clean response
+    let cleanResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    // Extract JSON array from response
+    const startIdx = cleanResponse.indexOf("[");
+    const endIdx = cleanResponse.lastIndexOf("]");
+
+    if (startIdx >= 0 && endIdx > startIdx) {
+      try {
+        const jsonStr = cleanResponse.substring(startIdx, endIdx + 1);
+        const parsed = JSON.parse(jsonStr);
+        // Ensure we get an array of strings
+        if (Array.isArray(parsed)) {
+          const headlines = parsed
+            .filter((item) => typeof item === "string" && item.length > 5)
+            .slice(0, 10);
+
+          if (headlines.length > 0) {
+            console.log(
+              `✅ Retrieved ${headlines.length} headlines from ${outletName} via LM-Studio search`,
+            );
+            return headlines;
+          }
+        }
+      } catch (e) {
+        console.error(
+          `Failed to parse ${outletName} outlet search response:`,
+          e,
+        );
+        console.error(
+          "Attempted JSON:",
+          cleanResponse.substring(
+            startIdx,
+            Math.min(endIdx + 1, startIdx + 200),
+          ),
+        );
+      }
+    } else {
+      console.warn(
+        `No JSON array found in ${outletName} search response. Response starts with:`,
+        cleanResponse.substring(0, 150),
+      );
+    }
+
+    return [];
+  } catch (error) {
+    console.error(`Failed to search ${outletName} via LM-Studio:`, error);
+    return [];
+  }
+}
+
+/**
+ * Fetch outlet data from LM-Studio search (primary) or local JSON (fallback)
+ */
+export async function fetchOutletData(
+  outletName: string,
+): Promise<OutletData | null> {
+  try {
+    // PRIMARY: Try to search via LM-Studio first
+    console.log(`🔍 Searching ${outletName} via LM-Studio...`);
+    const lmStudioHeadlines = await searchOutletNews(outletName);
+
+    if (lmStudioHeadlines && lmStudioHeadlines.length > 0) {
+      console.log(
+        `✅ Got ${lmStudioHeadlines.length} headlines from LM-Studio for ${outletName}`,
+      );
+      return {
+        name: outletName,
+        headlines: lmStudioHeadlines,
+        description: `${outletName} - Latest coverage via LM-Studio search`,
+      };
+    }
+
+    console.log(
+      `⚠️ LM-Studio search empty for ${outletName}, trying local JSON...`,
+    );
+
+    // FALLBACK: Try local JSON files
+    const fileMap: Record<string, string> = {
+      CNN: "news_cnn.json",
+      BBC: "news_bbc.json",
+      Reuters: "news_reuters.json",
+      "Al Jazeera": "news_aljazeera.json",
+      Fox: "news_fox.json",
+      MSNBC: "news_msnbc.json",
+      Guardian: "news_guardian.json",
+      Breitbart: "news_breitbart.json",
+      ARY: "news_ary.json",
+      Geo: "news_geo.json",
+      Express: "news_express.json",
+      Samaa: "news_samaa.json",
+      Dunya: "news_dunya.json",
+      Hum: "news_hum.json",
+      Dawn: "news_dawn.json",
+      "Pakistan Today": "news_pakistantoday.json",
+    };
+
+    const fileName = fileMap[outletName];
+    if (!fileName) {
+      console.warn(`No fallback data found for outlet: ${outletName}`);
+      return null;
+    }
+
+    const response = await fetch(`/data/json/${fileName}`);
+    if (!response.ok) {
+      console.warn(`Could not fetch fallback data for ${outletName}`);
+      return null;
+    }
+
+    const data = await response.json();
+
+    // Handle different JSON structures
+    let headlines: string[] = [];
+    let description = "";
+
+    if (Array.isArray(data)) {
+      // If data is an array of search results
+      headlines = data
+        .slice(0, 10)
+        .map((item: any) => {
+          // Use name as headline, fall back to snippet
+          return item.name || item.snippet || "";
+        })
+        .filter((h: string) => h.length > 0);
+      description = `${outletName} - Fallback cached news`;
+    } else {
+      // If data is an object with headlines property
+      headlines = (data.headlines || data.news || []).slice(0, 10);
+      description = data.description || data.info || `${outletName} news`;
+    }
+
+    if (headlines.length > 0) {
+      console.log(
+        `✅ Loaded ${headlines.length} headlines from local JSON for ${outletName}`,
+      );
+      return {
+        name: outletName,
+        headlines,
+        description,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`Error fetching outlet data for ${outletName}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Fetch all outlet data in parallel
+ */
+export async function fetchAllOutletData(
+  outletNames: string[],
+): Promise<OutletData[]> {
+  const promises = outletNames.map((name) => fetchOutletData(name));
+  const results = await Promise.allSettled(promises);
+
+  return results
+    .filter((result) => result.status === "fulfilled" && result.value !== null)
+    .map((result) => (result as PromiseFulfilledResult<OutletData>).value);
 }

@@ -35,6 +35,7 @@ import {
   TestTube,
   Shield,
   Lock,
+  Zap,
 } from "lucide-react";
 import {
   getAPIConfig,
@@ -45,6 +46,7 @@ import {
 } from "@/lib/api-config";
 import { maskAPIKey } from "@/lib/encryption-utils";
 import { createChatCompletion } from "@/lib/api-service";
+import { detectLocalServices, DetectedService } from "@/lib/service-detection";
 import Link from "next/link";
 
 export default function SettingsPage() {
@@ -63,6 +65,10 @@ export default function SettingsPage() {
   const [testMessage, setTestMessage] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("Custom");
   const [customModel, setCustomModel] = useState("");
+  const [detecting, setDetecting] = useState(false);
+  const [detectedServices, setDetectedServices] = useState<DetectedService[]>(
+    [],
+  );
 
   useEffect(() => {
     const savedConfig = getAPIConfig();
@@ -81,6 +87,9 @@ export default function SettingsPage() {
     if (provider) {
       setSelectedProvider(provider.name);
     }
+
+    // Auto-detect local services on mount
+    detectLocalServices().then(setDetectedServices);
   }, []);
 
   const handleProviderChange = (providerName: string) => {
@@ -122,10 +131,22 @@ export default function SettingsPage() {
   };
 
   const handleTest = async () => {
-    if (!config.apiKey || !config.endpoint) {
-      setTestResult("error");
-      setTestMessage("Please configure API key and endpoint first");
-      return;
+    const isLocal = config.endpoint.includes("localhost");
+
+    // For local services, only need endpoint and model
+    if (isLocal) {
+      if (!config.endpoint || !config.model) {
+        setTestResult("error");
+        setTestMessage("Please configure endpoint and model for local service");
+        return;
+      }
+    } else {
+      // For remote services, need API key and endpoint
+      if (!config.apiKey || !config.endpoint) {
+        setTestResult("error");
+        setTestMessage("Please configure API key and endpoint first");
+        return;
+      }
     }
 
     setTesting(true);
@@ -137,7 +158,7 @@ export default function SettingsPage() {
         [{ role: "user", content: 'Say "OK" if you can hear me.' }],
         {
           endpoint: config.endpoint,
-          apiKey: config.apiKey,
+          apiKey: config.apiKey || "local", // Use "local" placeholder for local services
           model: config.model || customModel,
           temperature: 0.1,
           maxTokens: 10,
@@ -153,6 +174,49 @@ export default function SettingsPage() {
       setTestMessage(error.message || "Connection failed");
     } finally {
       setTesting(false);
+    }
+  };
+
+  const handleAutoDetect = async () => {
+    setDetecting(true);
+    setTestResult(null);
+
+    try {
+      const services = await detectLocalServices();
+      setDetectedServices(services);
+
+      if (services.length === 0) {
+        setTestResult("error");
+        setTestMessage(
+          "No local services detected. Make sure Ollama or LM-Studio is running.",
+        );
+      } else {
+        // Auto-connect to the first detected service
+        const service = services[0];
+        const modelToUse = service.models?.[0] || "llama3.2";
+
+        setConfig((prev) => ({
+          ...prev,
+          endpoint: service.endpoint,
+          model: modelToUse,
+          apiKey: prev.apiKey || "local", // Use "local" as placeholder if not set
+        }));
+
+        setSelectedProvider(service.name);
+        setTestResult("success");
+        setTestMessage(
+          `✓ Detected ${service.name} at ${service.endpoint}${
+            service.models ? ` with ${service.models.length} model(s)` : ""
+          }`,
+        );
+      }
+    } catch (error: any) {
+      setTestResult("error");
+      setTestMessage(
+        error.message || "Failed to detect local services. Please try again.",
+      );
+    } finally {
+      setDetecting(false);
     }
   };
 
@@ -246,7 +310,183 @@ export default function SettingsPage() {
                   }
                 />
                 <p className="text-xs text-slate-500">
-                  For Ollama, use: http://localhost:11434/v1
+                  For Ollama: http://localhost:11434/v1 • For LM-Studio:
+                  http://localhost:8000/v1
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Auto-Detect Local Services */}
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-indigo-600" />
+                Quick Setup - Local Services
+              </CardTitle>
+              <CardDescription>
+                Auto-detect and connect to Ollama or LM-Studio running on your
+                machine (checks common ports: Ollama 11434/11435/8080, LM-Studio
+                8000/8001/1234)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button
+                onClick={handleAutoDetect}
+                disabled={detecting}
+                className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700"
+              >
+                {detecting ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Detecting...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4 mr-2" />
+                    Auto Detect Local Services
+                  </>
+                )}
+              </Button>
+
+              {detectedServices.length > 0 && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">
+                    Detected Services:
+                  </Label>
+                  {detectedServices.map((service) => (
+                    <div
+                      key={service.name}
+                      className="p-3 bg-white rounded-lg border border-indigo-200 flex justify-between items-start"
+                    >
+                      <div className="flex-1">
+                        <h4 className="font-medium text-slate-900">
+                          {service.name}
+                        </h4>
+                        <p className="text-xs text-slate-600 mt-1">
+                          {service.endpoint}
+                        </p>
+                        {service.models && service.models.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {service.models.slice(0, 3).map((model) => (
+                              <Badge key={model} variant="secondary">
+                                {model}
+                              </Badge>
+                            ))}
+                            {service.models.length > 3 && (
+                              <Badge variant="secondary">
+                                +{service.models.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <CheckCircle2 className="h-5 w-5 text-green-500 mt-1 ml-2 flex-shrink-0" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {detectedServices.length === 0 && !detecting && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-800">
+                    No services found. If you have Ollama or LM-Studio running
+                    on a custom port, manually configure below.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Manual Local Service Configuration */}
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-pink-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Server className="h-5 w-5 text-purple-600" />
+                Manual Local Setup
+              </CardTitle>
+              <CardDescription>
+                Configure Ollama or LM-Studio with custom port and model name
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="serviceType">Service Type</Label>
+                  <Select
+                    value={
+                      selectedProvider === "Ollama (Local)"
+                        ? "ollama"
+                        : selectedProvider === "LM-Studio"
+                          ? "lmstudio"
+                          : "custom"
+                    }
+                    onValueChange={(value) => {
+                      if (value === "ollama") {
+                        handleProviderChange("Ollama (Local)");
+                      } else if (value === "lmstudio") {
+                        handleProviderChange("LM-Studio");
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="serviceType">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ollama">Ollama</SelectItem>
+                      <SelectItem value="lmstudio">LM-Studio</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="customPort">Port (optional)</Label>
+                  <Input
+                    id="customPort"
+                    type="number"
+                    placeholder="e.g., 11434"
+                    defaultValue={
+                      config.endpoint.split(":").pop()?.replace("/v1", "") || ""
+                    }
+                    onChange={(e) => {
+                      const port = e.target.value;
+                      if (port) {
+                        const serviceType =
+                          selectedProvider === "Ollama (Local)"
+                            ? "11434"
+                            : "8000";
+                        const newEndpoint = config.endpoint.replace(
+                          /:(\d+)/,
+                          `:${port}`,
+                        );
+                        setConfig((prev) => ({
+                          ...prev,
+                          endpoint: newEndpoint,
+                        }));
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-slate-500">
+                    Ollama default: 11434 • LM-Studio default: 8000
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="manualModel">Model Name</Label>
+                <Input
+                  id="manualModel"
+                  type="text"
+                  placeholder="e.g., llama3.2, llama2, mistral, neural-chat"
+                  value={config.model || customModel}
+                  onChange={(e) => {
+                    setCustomModel(e.target.value);
+                    setConfig((prev) => ({ ...prev, model: e.target.value }));
+                  }}
+                />
+                <p className="text-xs text-slate-500">
+                  Enter any model name that's installed on your local service
                 </p>
               </div>
             </CardContent>
@@ -266,12 +506,17 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="apiKey">API Key</Label>
+                <Label htmlFor="apiKey">
+                  API Key{" "}
+                  <span className="text-xs text-slate-500">
+                    (optional for local)
+                  </span>
+                </Label>
                 <div className="relative">
                   <Input
                     id="apiKey"
                     type={showApiKey ? "text" : "password"}
-                    placeholder="sk-..."
+                    placeholder="sk-... (required for cloud APIs, optional for local)"
                     value={config.apiKey}
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, apiKey: e.target.value }))
@@ -291,8 +536,8 @@ export default function SettingsPage() {
                   </button>
                 </div>
                 <p className="text-xs text-slate-500">
-                  🔒 Encrypted before storage • Sent only to server proxy •
-                  Never exposed to external APIs
+                  🔒 Encrypted before storage • For remote APIs only • Local
+                  services don't need an API key
                 </p>
                 {config.apiKey && (
                   <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
@@ -305,8 +550,8 @@ export default function SettingsPage() {
                   </div>
                 )}
                 <p className="text-xs text-slate-500">
-                  For local models like Ollama, you can use any placeholder
-                  value like "ollama"
+                  <strong>Optional for local services:</strong> Leave blank for
+                  Ollama/LM-Studio, or enter any placeholder value
                 </p>
               </div>
             </CardContent>
@@ -476,34 +721,30 @@ export default function SettingsPage() {
                       </code>
                     </li>
                     <li>
-                      Pull model:{" "}
+                      Pull any model (e.g.:{" "}
                       <code className="bg-slate-100 px-1 rounded">
                         ollama pull llama3.2
                       </code>
+                      )
                     </li>
                     <li>
-                      Set endpoint:{" "}
-                      <code className="bg-slate-100 px-1 rounded">
-                        http://localhost:11434/v1
-                      </code>
+                      Endpoint: http://localhost:11434/v1 (or custom port)
                     </li>
-                    <li>Use any API key (e.g., "ollama")</li>
+                    <li>Model: Use any installed model name</li>
+                    <li>API Key: Use any value (e.g., "local")</li>
                   </ol>
                 </div>
                 <div className="p-4 bg-white rounded-lg border border-slate-200">
                   <h4 className="font-medium text-slate-800 mb-2">
-                    OpenAI (Cloud)
+                    LM-Studio (Local)
                   </h4>
                   <ol className="text-sm text-slate-600 space-y-1 list-decimal list-inside">
-                    <li>Get API key from platform.openai.com</li>
-                    <li>
-                      Set endpoint:{" "}
-                      <code className="bg-slate-100 px-1 rounded">
-                        https://api.openai.com/v1
-                      </code>
-                    </li>
-                    <li>Paste your API key</li>
-                    <li>Select model (gpt-4o-mini recommended)</li>
+                    <li>Install LM-Studio from lmstudio.ai</li>
+                    <li>Load a model in LM-Studio</li>
+                    <li>Start the local server (port 8000 by default)</li>
+                    <li>Endpoint: http://localhost:8000/v1 (or custom port)</li>
+                    <li>Model: Use loaded model name</li>
+                    <li>API Key: Use any value (e.g., "local")</li>
                   </ol>
                 </div>
               </div>
