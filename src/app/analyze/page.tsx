@@ -78,6 +78,10 @@ import {
   getTimeSinceUpdate,
 } from "@/lib/analysis-storage";
 import { rotateOutlets, RATE_LIMIT_CONFIG } from "@/lib/rate-limiter";
+import { DashboardTab } from "@/components/analyze/DashboardTab";
+import { AnalyzeTab } from "@/components/analyze/AnalyzeTab";
+import { DebiasTab } from "@/components/analyze/DebiasTab";
+import { GenerateTab } from "@/components/analyze/GenerateTab";
 
 // Bias color mapping
 const biasColors: Record<string, string> = {
@@ -467,7 +471,10 @@ export default function AnalyzePage() {
 
         // Auto-analyze international outlets
         try {
-          intlAnalysis = await analyzeMultipleOutlets(intlData);
+          const newIntlAnalysis = await analyzeMultipleOutlets(intlData);
+          intlAnalysis = liveInternational.map(
+            (o) => newIntlAnalysis.find((n) => n.outlet === o.outlet) || o
+          );
           setLiveInternational(intlAnalysis);
           console.log("International outlets analyzed:", intlAnalysis);
         } catch (error) {
@@ -483,7 +490,10 @@ export default function AnalyzePage() {
 
         // Auto-analyze Pakistani outlets
         try {
-          pkAnalysis = await analyzeMultipleOutlets(pkData);
+          const newPkAnalysis = await analyzeMultipleOutlets(pkData);
+          pkAnalysis = livePakistan.map(
+            (o) => newPkAnalysis.find((n) => n.outlet === o.outlet) || o
+          );
           setLivePakistan(pkAnalysis);
           console.log("Pakistani outlets analyzed:", pkAnalysis);
         } catch (error) {
@@ -983,540 +993,55 @@ export default function AnalyzePage() {
 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
-            {/* Bias Distribution */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white">
-                    International Media Bias
-                  </CardTitle>
-                  <CardDescription className="text-slate-400">
-                    Distribution across bias categories
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer config={chartConfig} className="h-64">
-                    <BarChart data={prepareDistributionData(liveInternational)}>
-                      <XAxis dataKey="bias" stroke="#94a3b8" />
-                      <YAxis stroke="#94a3b8" />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                        {prepareDistributionData(liveInternational).map(
-                          (entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                          ),
-                        )}
-                      </Bar>
-                    </BarChart>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white">
-                    Pakistan Media Bias
-                  </CardTitle>
-                  <CardDescription className="text-slate-400">
-                    Distribution across bias categories
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer config={chartConfig} className="h-64">
-                    <BarChart data={prepareDistributionData(livePakistan)}>
-                      <XAxis dataKey="bias" stroke="#94a3b8" />
-                      <YAxis stroke="#94a3b8" />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                        {prepareDistributionData(livePakistan).map(
-                          (entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                          ),
-                        )}
-                      </Bar>
-                    </BarChart>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Narratives */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-amber-500" />
-                  Detected Narratives
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {liveNarratives.narratives.map((narrative, index) => (
-                    <Card
-                      key={index}
-                      className="bg-slate-700/50 border-slate-600"
-                    >
-                      <CardContent className="pt-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold text-white">
-                            {narrative.title}
-                          </h4>
-                          <Badge
-                            variant={
-                              narrative.intensity === "high"
-                                ? "destructive"
-                                : "default"
-                            }
-                          >
-                            {narrative.intensity}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-slate-300 mb-4">
-                          {narrative.description}
-                        </p>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500">
-                              Promoted:
-                            </span>
-                            <Badge
-                              style={{
-                                backgroundColor:
-                                  biasColors[narrative.promoted_by],
-                              }}
-                              className="text-white text-xs"
-                            >
-                              {narrative.promoted_by}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500">
-                              Opposed:
-                            </span>
-                            <Badge
-                              style={{
-                                backgroundColor:
-                                  biasColors[narrative.opposed_by],
-                              }}
-                              className="text-white text-xs"
-                            >
-                              {narrative.opposed_by}
-                            </Badge>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Outlet Details */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Outlet Analysis</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="international">
-                  <TabsList className="bg-slate-700">
-                    <TabsTrigger value="international">
-                      International
-                    </TabsTrigger>
-                    <TabsTrigger value="pakistan">Pakistan</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="international" className="mt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {liveInternational.map((outlet, index) => (
-                        <Card
-                          key={index}
-                          className="bg-slate-700/50 border-slate-600"
-                        >
-                          <CardContent className="pt-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-semibold text-white">
-                                {outlet.outlet}
-                              </h4>
-                              <div className="flex gap-1">
-                                <Badge
-                                  style={{
-                                    backgroundColor:
-                                      biasColors[outlet.dominant_bias],
-                                  }}
-                                  className="text-white"
-                                >
-                                  {outlet.dominant_bias}
-                                </Badge>
-                                <Badge
-                                  variant="outline"
-                                  style={{
-                                    borderColor:
-                                      biasColors[outlet.secondary_bias],
-                                    color: biasColors[outlet.secondary_bias],
-                                  }}
-                                >
-                                  {outlet.secondary_bias}
-                                </Badge>
-                              </div>
-                            </div>
-                            <p className="text-sm text-slate-300 mb-2">
-                              {outlet.analysis}
-                            </p>
-                            <div className="flex items-center gap-2">
-                              <Progress
-                                value={outlet.confidence * 100}
-                                className="h-2 flex-1"
-                              />
-                              <span className="text-xs text-slate-400">
-                                {Math.round(outlet.confidence * 100)}%
-                              </span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="pakistan" className="mt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {livePakistan.map((outlet, index) => (
-                        <Card
-                          key={index}
-                          className="bg-slate-700/50 border-slate-600"
-                        >
-                          <CardContent className="pt-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-semibold text-white">
-                                {outlet.outlet}
-                              </h4>
-                              <div className="flex gap-1">
-                                <Badge
-                                  style={{
-                                    backgroundColor:
-                                      biasColors[outlet.dominant_bias],
-                                  }}
-                                  className="text-white"
-                                >
-                                  {outlet.dominant_bias}
-                                </Badge>
-                                <Badge
-                                  variant="outline"
-                                  style={{
-                                    borderColor:
-                                      biasColors[outlet.secondary_bias],
-                                    color: biasColors[outlet.secondary_bias],
-                                  }}
-                                >
-                                  {outlet.secondary_bias}
-                                </Badge>
-                              </div>
-                            </div>
-                            <p className="text-sm text-slate-300 mb-2">
-                              {outlet.analysis}
-                            </p>
-                            <div className="flex items-center gap-2">
-                              <Progress
-                                value={outlet.confidence * 100}
-                                className="h-2 flex-1"
-                              />
-                              <span className="text-xs text-slate-400">
-                                {Math.round(outlet.confidence * 100)}%
-                              </span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
+            <DashboardTab 
+              liveInternational={liveInternational}
+              livePakistan={livePakistan}
+              liveNarratives={liveNarratives}
+              chartConfig={chartConfig}
+              prepareDistributionData={prepareDistributionData}
+              biasColors={biasColors}
+            />
           </TabsContent>
 
           {/* Analyze Tab */}
           <TabsContent value="analyze" className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Search className="h-5 w-5 text-amber-500" />
-                  Custom Text Analysis
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Analyze any text for bias using the BiasMapper framework
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="customText" className="text-slate-300">
-                    Text to Analyze
-                  </Label>
-                  <textarea
-                    id="customText"
-                    className="w-full h-40 p-3 rounded-lg bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Paste news article, social media post, or any text content here..."
-                    value={customText}
-                    onChange={(e) => setCustomText(e.target.value)}
-                  />
-                </div>
-                <Button
-                  onClick={handleCustomAnalysis}
-                  disabled={!customText.trim() || !isConfigured || analyzing}
-                  className="bg-gradient-to-r from-amber-600 to-orange-600"
-                >
-                  {analyzing ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="h-4 w-4 mr-2" />
-                      Analyze Bias
-                    </>
-                  )}
-                </Button>
-
-                {customResult && (
-                  <Card className="bg-slate-700/50 border-slate-600 mt-4">
-                    <CardContent className="pt-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-white">
-                          Analysis Result
-                        </h4>
-                        <div className="flex gap-2">
-                          <Badge
-                            style={{
-                              backgroundColor:
-                                biasColors[customResult.dominant_bias],
-                            }}
-                            className="text-white"
-                          >
-                            {customResult.dominant_bias}
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            style={{
-                              borderColor:
-                                biasColors[customResult.secondary_bias],
-                              color: biasColors[customResult.secondary_bias],
-                            }}
-                          >
-                            {customResult.secondary_bias}
-                          </Badge>
-                        </div>
-                      </div>
-                      <p className="text-slate-300 mb-3">
-                        {customResult.analysis}
-                      </p>
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-slate-400 text-sm">
-                          Confidence:
-                        </span>
-                        <Progress
-                          value={customResult.confidence * 100}
-                          className="h-2 flex-1"
-                        />
-                        <span className="text-slate-400 text-sm">
-                          {Math.round(customResult.confidence * 100)}%
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {customResult.key_themes.map((theme, i) => (
-                          <Badge
-                            key={i}
-                            variant="secondary"
-                            className="bg-slate-600"
-                          >
-                            {theme}
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </CardContent>
-            </Card>
+            <AnalyzeTab
+              customText={customText}
+              setCustomText={setCustomText}
+              analyzing={analyzing}
+              isConfigured={isConfigured}
+              handleCustomAnalysis={handleCustomAnalysis}
+              customResult={customResult}
+              biasColors={biasColors}
+            />
           </TabsContent>
 
           {/* Debias Tab */}
           <TabsContent value="debias" className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <ArrowLeftRight className="h-5 w-5 text-green-500" />
-                  Debias Text
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Neutralize biased text while preserving factual accuracy
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="debiasInput" className="text-slate-300">
-                    Biased Text
-                  </Label>
-                  <textarea
-                    id="debiasInput"
-                    className="w-full h-40 p-3 rounded-lg bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-                    placeholder="Enter biased text to neutralize..."
-                    value={debiasText_input}
-                    onChange={(e) => setDebiasText_input(e.target.value)}
-                  />
-                </div>
-                <Button
-                  onClick={handleDebias}
-                  disabled={
-                    !debiasText_input.trim() || !isConfigured || analyzing
-                  }
-                  className="bg-gradient-to-r from-green-600 to-emerald-600"
-                >
-                  {analyzing ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <ArrowLeftRight className="h-4 w-4 mr-2" />
-                      Debias Text
-                    </>
-                  )}
-                </Button>
-
-                {debiasResult && (
-                  <Card className="bg-slate-700/50 border-slate-600 mt-4">
-                    <CardContent className="pt-4 space-y-4">
-                      <div>
-                        <Label className="text-slate-400 text-sm">
-                          Original Bias
-                        </Label>
-                        <Badge
-                          style={{
-                            backgroundColor:
-                              biasColors[debiasResult.original_bias],
-                          }}
-                          className="ml-2 text-white"
-                        >
-                          {debiasResult.original_bias}
-                        </Badge>
-                      </div>
-                      <div>
-                        <Label className="text-slate-400 text-sm">
-                          Neutralized Text
-                        </Label>
-                        <p className="mt-2 text-white bg-slate-800 p-3 rounded-lg">
-                          {debiasResult.neutralized_text}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-slate-400 text-sm">
-                          Changes Made
-                        </Label>
-                        <ul className="mt-2 space-y-1">
-                          {debiasResult.changes_made.map((change, i) => (
-                            <li
-                              key={i}
-                              className="text-slate-300 text-sm flex items-center gap-2"
-                            >
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              {change}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </CardContent>
-            </Card>
+            <DebiasTab
+              debiasText_input={debiasText_input}
+              setDebiasText_input={setDebiasText_input}
+              analyzing={analyzing}
+              isConfigured={isConfigured}
+              handleDebias={handleDebias}
+              debiasResult={debiasResult}
+              biasColors={biasColors}
+            />
           </TabsContent>
 
           {/* Generate Tab */}
           <TabsContent value="generate" className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-purple-500" />
-                  Generate with Bias
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Generate content from a specific bias perspective
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="generateTopic" className="text-slate-300">
-                      Topic
-                    </Label>
-                    <Input
-                      id="generateTopic"
-                      className="bg-slate-700 border-slate-600 text-white"
-                      placeholder="e.g., Climate change policy"
-                      value={generateTopic}
-                      onChange={(e) => setGenerateTopic(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="generateBiasSelect"
-                      className="text-slate-300"
-                    >
-                      Target Bias
-                    </Label>
-                    <select
-                      id="generateBiasSelect"
-                      className="w-full p-2 rounded-lg bg-slate-700 border-slate-600 text-white"
-                      value={generateBias}
-                      onChange={(e) => setGenerateBias(e.target.value)}
-                    >
-                      <option value="L++">L++ - Far Left</option>
-                      <option value="L+">L+ - Progressive</option>
-                      <option value="C">C - Center</option>
-                      <option value="R+">R+ - Conservative</option>
-                      <option value="R++">R++ - Far Right</option>
-                      <option value="T+">T+ - Mainstream</option>
-                      <option value="B+">B+ - Grassroots</option>
-                    </select>
-                  </div>
-                </div>
-                <Button
-                  onClick={handleGenerate}
-                  disabled={!generateTopic.trim() || !isConfigured || analyzing}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600"
-                >
-                  {analyzing ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="h-4 w-4 mr-2" />
-                      Generate Content
-                    </>
-                  )}
-                </Button>
-
-                {generatedText && (
-                  <Card className="bg-slate-700/50 border-slate-600 mt-4">
-                    <CardContent className="pt-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Badge
-                          style={{ backgroundColor: biasColors[generateBias] }}
-                          className="text-white"
-                        >
-                          {generateBias}
-                        </Badge>
-                        <span className="text-slate-400 text-sm">
-                          Perspective
-                        </span>
-                      </div>
-                      <p className="text-white whitespace-pre-wrap">
-                        {generatedText}
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </CardContent>
-            </Card>
+            <GenerateTab
+              generateTopic={generateTopic}
+              setGenerateTopic={setGenerateTopic}
+              generateBias={generateBias}
+              setGenerateBias={setGenerateBias}
+              analyzing={analyzing}
+              isConfigured={isConfigured}
+              handleGenerate={handleGenerate}
+              generatedText={generatedText}
+              biasColors={biasColors}
+            />
           </TabsContent>
         </Tabs>
       </main>
