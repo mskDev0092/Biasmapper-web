@@ -1,4 +1,5 @@
 import { getAPIConfig, APIConfig } from "./api-config";
+import { RATE_LIMIT_CONFIG, limitArraySize } from "./rate-limiter";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -557,10 +558,10 @@ Return ONLY a JSON array of headline strings (no markdown, no code blocks):
         if (Array.isArray(parsed)) {
           const headlines = parsed
             .filter((item) => typeof item === "string" && item.length > 5)
-            .slice(0, 10);
+            .slice(0, RATE_LIMIT_CONFIG.MAX_HEADLINES_PER_OUTLET);
           if (headlines.length > 0) {
             console.log(
-              `✅ Retrieved ${headlines.length} headlines from web search`,
+              `✅ Retrieved ${headlines.length} headlines from web search (limited to ${RATE_LIMIT_CONFIG.MAX_HEADLINES_PER_OUTLET})`,
             );
             return headlines;
           }
@@ -634,11 +635,11 @@ Return a JSON array of 5-10 recent verified headlines (no markdown, no code bloc
         if (Array.isArray(parsed)) {
           const headlines = parsed
             .filter((item) => typeof item === "string" && item.length > 5)
-            .slice(0, 10);
+            .slice(0, RATE_LIMIT_CONFIG.MAX_HEADLINES_PER_OUTLET);
 
           if (headlines.length > 0) {
             console.log(
-              `✅ Retrieved ${headlines.length} headlines from ${outletName} via LM-Studio search`,
+              `✅ Retrieved ${headlines.length} headlines from ${outletName} via LM-Studio search (limited to ${RATE_LIMIT_CONFIG.MAX_HEADLINES_PER_OUTLET})`,
             );
             return headlines;
           }
@@ -769,15 +770,41 @@ export async function fetchOutletData(
 }
 
 /**
- * Fetch all outlet data in parallel
+ * Fetch all outlet data with rate limiting
+ * Limits concurrent requests and adds delays between them
  */
 export async function fetchAllOutletData(
   outletNames: string[],
 ): Promise<OutletData[]> {
-  const promises = outletNames.map((name) => fetchOutletData(name));
-  const results = await Promise.allSettled(promises);
+  const results: OutletData[] = [];
+  const errors: string[] = [];
 
-  return results
-    .filter((result) => result.status === "fulfilled" && result.value !== null)
-    .map((result) => (result as PromiseFulfilledResult<OutletData>).value);
+  // Process outlets sequentially with delays to respect rate limits
+  for (let i = 0; i < outletNames.length; i++) {
+    const name = outletNames[i];
+    try {
+      // Add delay between requests (except for first)
+      if (i > 0) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, RATE_LIMIT_CONFIG.REQUEST_DELAY),
+        );
+      }
+
+      const data = await fetchOutletData(name);
+      if (data) {
+        results.push(data);
+      }
+    } catch (error) {
+      errors.push(
+        `${name}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      console.error(`Error fetching ${name}:`, error);
+    }
+  }
+
+  if (errors.length > 0) {
+    console.warn(`⚠️ Errors during outlet fetch:`, errors);
+  }
+
+  return results;
 }

@@ -77,6 +77,7 @@ import {
   loadAnalysisData,
   getTimeSinceUpdate,
 } from "@/lib/analysis-storage";
+import { rotateOutlets, RATE_LIMIT_CONFIG } from "@/lib/rate-limiter";
 
 // Bias color mapping
 const biasColors: Record<string, string> = {
@@ -351,9 +352,10 @@ export default function AnalyzePage() {
 
   // Auto-refresh state
   const [isAutoRefreshEnabled, setIsAutoRefreshEnabled] = useState(false);
-  const [autoRefreshInterval, setAutoRefreshInterval] = useState(300); // 5 minutes default
-  const [countdownTimer, setCountdownTimer] = useState(autoRefreshInterval);
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState(600); // 10 minutes default (more reasonable)
+  const [countdownTimer, setCountdownTimer] = useState(600);
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
+  const [refreshCount, setRefreshCount] = useState(0); // Track refresh cycles for outlet rotation
 
   // Auto-connect to LM-Studio on mount and fetch real data
   useEffect(() => {
@@ -423,10 +425,10 @@ export default function AnalyzePage() {
     setCountdownTimer(autoRefreshInterval);
   }, [autoRefreshInterval]);
 
-  // Auto-fetch outlet data
+  // Auto-fetch outlet data with rate limiting and outlet rotation
   const autoFetchOutletData = async () => {
     try {
-      const internationalOutlets = [
+      const allInternationalOutlets = [
         "CNN",
         "BBC",
         "Reuters",
@@ -435,7 +437,7 @@ export default function AnalyzePage() {
         "Fox",
         "MSNBC",
       ];
-      const pakistaniOutlets = [
+      const allPakistaniOutlets = [
         "Dawn",
         "Express",
         "Samaa",
@@ -445,6 +447,17 @@ export default function AnalyzePage() {
         "Geo",
         "Pakistan Today",
       ];
+
+      // Rotate outlets to limit concurrent requests
+      const internationalOutlets = rotateOutlets(
+        allInternationalOutlets,
+        refreshCount,
+      );
+      const pakistaniOutlets = rotateOutlets(allPakistaniOutlets, refreshCount);
+
+      console.log(
+        `📊 Refresh cycle ${refreshCount}: Fetching ${internationalOutlets.length} intl + ${pakistaniOutlets.length} pk outlets`,
+      );
 
       // Fetch international outlet data
       let intlAnalysis = liveInternational;
@@ -506,6 +519,9 @@ export default function AnalyzePage() {
 
       // Update last update time
       setLastUpdateTime(getTimeSinceUpdate());
+
+      // Increment refresh count for next rotation
+      setRefreshCount((prev) => prev + 1);
 
       console.log("✅ Data saved to localStorage");
     } catch (error) {
@@ -826,13 +842,17 @@ export default function AnalyzePage() {
                   </label>
                   <input
                     type="number"
-                    min="30"
+                    min={RATE_LIMIT_CONFIG.MIN_AUTO_REFRESH}
                     max="3600"
-                    step="30"
+                    step="60"
                     value={autoRefreshInterval}
                     onChange={(e) =>
                       setAutoRefreshInterval(
-                        Math.max(30, parseInt(e.target.value) || 300),
+                        Math.max(
+                          RATE_LIMIT_CONFIG.MIN_AUTO_REFRESH,
+                          parseInt(e.target.value) ||
+                            RATE_LIMIT_CONFIG.MIN_AUTO_REFRESH,
+                        ),
                       )
                     }
                     className="bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white text-sm w-24"
@@ -840,6 +860,10 @@ export default function AnalyzePage() {
                   <span className="text-slate-400 text-sm">
                     ({Math.floor(autoRefreshInterval / 60)}m{" "}
                     {autoRefreshInterval % 60}s)
+                  </span>
+                  <span className="text-slate-500 text-xs">
+                    (min: {Math.floor(RATE_LIMIT_CONFIG.MIN_AUTO_REFRESH / 60)}
+                    m)
                   </span>
                 </div>
 
