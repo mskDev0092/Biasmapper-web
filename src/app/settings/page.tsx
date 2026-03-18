@@ -178,46 +178,6 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        {/* Security Notice */}
-        <Card className="mb-8 border border-blue-200 bg-blue-50 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-900">
-              <Shield className="h-5 w-5 text-blue-600" />
-              Security Features
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-blue-800">
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 flex-shrink-0" />
-              <span>
-                <strong>Encrypted Storage:</strong> API keys are encrypted
-                before stored in your browser using your device fingerprint
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 flex-shrink-0" />
-              <span>
-                <strong>Server Proxy:</strong> API calls route through our
-                server proxy, your credentials never directly contact external
-                APIs
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 flex-shrink-0" />
-              <span>
-                <strong>Rate Limiting:</strong> All requests are validated and
-                rate-limited server-side to prevent abuse
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 flex-shrink-0" />
-              <span>
-                <strong>Input Validation:</strong> Endpoints, API keys, and
-                messages are validated for security
-              </span>
-            </div>
-          </CardContent>
-        </Card>
         <Card className="mb-8 border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

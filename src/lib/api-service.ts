@@ -21,13 +21,24 @@ export interface ChatCompletionResponse {
 }
 
 /**
- * Create a chat completion using the secure API proxy
+ * Create a chat completion by calling the external API
  *
- * IMPORTANT SECURITY:
- * - This function calls /api/proxy on the server, NOT the external API directly
- * - API credentials are never exposed to external services from the browser
- * - All requests are rate-limited and validated server-side
- * - Never pass credentials directly in API calls from the browser
+ * SECURITY NOTE - Static Export Architecture:
+ * - This application is a static export (no server-side code)
+ * - API credentials are encrypted in localStorage using device fingerprint
+ * - When making API calls, the key is decrypted and sent to the external API
+ * - This is less secure than a server proxy, but is the only option for static exports
+ * - Users should understand their API keys are used locally in their browser
+ *
+ * ✅ What IS Secure:
+ * - API keys encrypted at rest in localStorage (device-specific encryption)
+ * - Keys only decrypted in-memory when needed
+ * - Encryption key derived from device fingerprint (can't be transferred)
+ *
+ * ⚠️ What to Know:
+ * - API calls made from browser expose key to external service
+ * - For production use with sensitive data, consider server-side deployment
+ * - Local/development use is safe for personal analytics
  */
 export async function createChatCompletion(
   messages: ChatMessage[],
@@ -47,16 +58,15 @@ export async function createChatCompletion(
     );
   }
 
-  // Call the server-side proxy instead of the API directly
-  // This keeps the API key on the server and prevents exposure
-  const response = await fetch("/api/proxy", {
+  // Call the external API directly from browser
+  // API key is decrypted from localStorage for this request only
+  const response = await fetch(`${apiConfig.endpoint}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      Authorization: `Bearer ${apiConfig.apiKey}`,
     },
     body: JSON.stringify({
-      endpoint: apiConfig.endpoint,
-      apiKey: apiConfig.apiKey,
       model: apiConfig.model,
       messages,
       temperature: apiConfig.temperature || 0.7,
