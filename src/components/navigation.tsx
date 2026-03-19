@@ -14,12 +14,16 @@ import {
   Info,
   Github,
   CheckCircle2,
+  Search,
+  Zap,
 } from "lucide-react";
 import { isAPIConfigured } from "@/lib/api-config";
 
 const navigation = [
   { name: "Home", href: "/", icon: Home },
-  { name: "Analyze", href: "/analyze", icon: BarChart3 },
+  { name: "Dashboard", href: "/analyze", icon: BarChart3 },
+  { name: "Analyze", href: "/analyze-text", icon: Search },
+  { name: "Generate", href: "/generate-text", icon: Zap },
   { name: "About", href: "/about", icon: Info },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
