@@ -345,7 +345,7 @@ export const OutletProfilesDB = {
 
 // ─── News API Settings ──────────────────────────────────────────────
 
-const DEFAULT_NEWS_SETTINGS: NewsApiSettings = {
+export const DEFAULT_NEWS_SETTINGS: NewsApiSettings = {
   newsApiKey: process.env.NEXT_PUBLIC_NEWSAPI_KEY || "",
   gnewsApiKey: process.env.NEXT_PUBLIC_GNEWS_KEY || "",
   currentsApiKey: process.env.NEXT_PUBLIC_CURRENTS_KEY || "",

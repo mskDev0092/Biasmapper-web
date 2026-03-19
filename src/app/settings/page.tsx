@@ -49,7 +49,7 @@ import {
 import { maskAPIKey } from "@/lib/encryption-utils";
 import { createChatCompletion } from "@/lib/api-service";
 import { detectLocalServices, DetectedService } from "@/lib/service-detection";
-import { NewsSettingsDB, type NewsApiSettings, clearAllData } from "@/lib/local-db";
+import { NewsSettingsDB, type NewsApiSettings, clearAllData, DEFAULT_NEWS_SETTINGS } from "@/lib/local-db";
 import Link from "next/link";
 
 export default function SettingsPage() {
@@ -72,15 +72,7 @@ export default function SettingsPage() {
   const [detectedServices, setDetectedServices] = useState<DetectedService[]>(
     [],
   );
-  const [newsSettings, setNewsSettings] = useState<NewsApiSettings>({
-    newsApiKey: "",
-    gnewsApiKey: "",
-    currentsApiKey: "",
-    preferredProvider: "gnews",
-    fetchCountries: ["us"],
-    autoFetchEnabled: false,
-    autoFetchIntervalSec: 600,
-  });
+  const [newsSettings, setNewsSettings] = useState<NewsApiSettings>(DEFAULT_NEWS_SETTINGS);
 
   useEffect(() => {
     const savedConfig = getAPIConfig();
@@ -147,13 +139,7 @@ export default function SettingsPage() {
       temperature: 0.7,
       maxTokens: 2048,
     });
-    setNewsSettings({
-      preferredProvider: "gnews",
-      gnewsApiKey: "",
-      newsApiKey: "",
-      currentsApiKey: "",
-      fetchCountries: ["us"],
-    });
+    setNewsSettings(DEFAULT_NEWS_SETTINGS);
     setSelectedProvider("Custom");
     setTestResult(null);
     alert("All local data has been wiped.");
