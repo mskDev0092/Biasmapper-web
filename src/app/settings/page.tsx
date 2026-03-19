@@ -36,6 +36,8 @@ import {
   Shield,
   Lock,
   Zap,
+  Newspaper,
+  Globe,
 } from "lucide-react";
 import {
   getAPIConfig,
@@ -47,6 +49,7 @@ import {
 import { maskAPIKey } from "@/lib/encryption-utils";
 import { createChatCompletion } from "@/lib/api-service";
 import { detectLocalServices, DetectedService } from "@/lib/service-detection";
+import { NewsSettingsDB, type NewsApiSettings } from "@/lib/local-db";
 import Link from "next/link";
 
 export default function SettingsPage() {
@@ -69,6 +72,15 @@ export default function SettingsPage() {
   const [detectedServices, setDetectedServices] = useState<DetectedService[]>(
     [],
   );
+  const [newsSettings, setNewsSettings] = useState<NewsApiSettings>({
+    newsApiKey: "",
+    gnewsApiKey: "",
+    currentsApiKey: "",
+    preferredProvider: "gnews",
+    fetchCountries: ["us"],
+    autoFetchEnabled: false,
+    autoFetchIntervalSec: 600,
+  });
 
   useEffect(() => {
     const savedConfig = getAPIConfig();
@@ -90,6 +102,9 @@ export default function SettingsPage() {
 
     // Auto-detect local services on mount
     detectLocalServices().then(setDetectedServices);
+
+    // Load news settings
+    setNewsSettings(NewsSettingsDB.get());
   }, []);
 
   const handleProviderChange = (providerName: string) => {
@@ -114,6 +129,10 @@ export default function SettingsPage() {
     });
     setTestResult(null);
     setTestMessage("Settings saved successfully!");
+    
+    // Save news settings too
+    NewsSettingsDB.update(newsSettings);
+    
     setTimeout(() => setTestMessage(""), 3000);
   };
 
@@ -643,6 +662,108 @@ export default function SettingsPage() {
                       }))
                     }
                   />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* News API Configuration */}
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Newspaper className="h-5 w-5 text-blue-600" />
+                News API Configuration
+              </CardTitle>
+              <CardDescription>
+                Configure free news API keys to fetch latest articles for analysis
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="preferredNewsProvider">Preferred Provider</Label>
+                  <Select
+                    value={newsSettings.preferredProvider}
+                    onValueChange={(v: any) => setNewsSettings(prev => ({ ...prev, preferredProvider: v }))}
+                  >
+                    <SelectTrigger id="preferredNewsProvider">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gnews">GNews (Recommended)</SelectItem>
+                      <SelectItem value="newsapi">NewsAPI.org</SelectItem>
+                      <SelectItem value="currents">Currents API</SelectItem>
+                      <SelectItem value="google-rss">Google RSS (No Key Required)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500">
+                    Highest priority source for news fetching
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="newsCountries">Countries</Label>
+                  <div className="flex gap-2 flex-wrap min-h-[40px] items-center">
+                    {["us", "pk", "gb", "ca", "in"].map(c => (
+                      <Badge
+                        key={c}
+                        variant={newsSettings.fetchCountries.includes(c) ? "default" : "outline"}
+                        className="cursor-pointer uppercase"
+                        onClick={() => {
+                          const countries = newsSettings.fetchCountries.includes(c)
+                            ? newsSettings.fetchCountries.filter(x => x !== c)
+                            : [...newsSettings.fetchCountries, c];
+                          setNewsSettings(prev => ({ ...prev, fetchCountries: countries }));
+                        }}
+                      >
+                        {c}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="gnewsApiKey">GNews API Key</Label>
+                  <Input
+                    id="gnewsApiKey"
+                    type="password"
+                    placeholder="Enter GNews API key"
+                    value={newsSettings.gnewsApiKey}
+                    onChange={(e) => setNewsSettings(prev => ({ ...prev, gnewsApiKey: e.target.value }))}
+                  />
+                  <p className="text-xs text-slate-500">
+                    Get a free key at <a href="https://gnews.io/" target="_blank" className="text-blue-600 underline">gnews.io</a> (100 free requests/day)
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="newsApiKey">NewsAPI.org Key</Label>
+                  <Input
+                    id="newsApiKey"
+                    type="password"
+                    placeholder="Enter NewsAPI.org key"
+                    value={newsSettings.newsApiKey}
+                    onChange={(e) => setNewsSettings(prev => ({ ...prev, newsApiKey: e.target.value }))}
+                  />
+                  <p className="text-xs text-slate-500">
+                    Get a free key at <a href="https://newsapi.org/" target="_blank" className="text-blue-600 underline">newsapi.org</a> (Developer tier)
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="currentsApiKey">Currents API Key</Label>
+                  <Input
+                    id="currentsApiKey"
+                    type="password"
+                    placeholder="Enter Currents API key"
+                    value={newsSettings.currentsApiKey}
+                    onChange={(e) => setNewsSettings(prev => ({ ...prev, currentsApiKey: e.target.value }))}
+                  />
+                  <p className="text-xs text-slate-500">
+                    Get a free key at <a href="https://currentsapi.services/" target="_blank" className="text-blue-600 underline">currentsapi.services</a>
+                  </p>
                 </div>
               </div>
             </CardContent>

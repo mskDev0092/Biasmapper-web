@@ -276,8 +276,16 @@ export default function AnalyzePage() {
 
   // Handle per-article LLM analysis from the news feed
   const handleAnalyzeArticle = async (article: NewsArticle) => {
+    // 1. Check if we already have this analysis to prevent redundant LLM calls
+    const existing = AnalysisResultsDB.getRecent(100).find(a => a.articleId === article.id);
+    if (existing) {
+      console.log("Using existing analysis for:", article.id);
+      return;
+    }
+
     const textToAnalyze = `${article.title}\n\n${article.description || ""}`;
     const result = await analyzeTextBias(textToAnalyze, article.source);
+    
     AnalysisResultsDB.create({
       articleId: article.id,
       inputText: textToAnalyze,
@@ -292,11 +300,13 @@ export default function AnalyzePage() {
       premises: [],
       conclusions: [],
     });
+
     // Link analysis to article
     const allArticles = NewsArticlesDB.getAll();
     const updated = allArticles.map((a) =>
       a.id === article.id ? { ...a, analysisId: "linked", updatedAt: new Date().toISOString() } : a
     );
+    
     // Directly write to avoid re-upsert overhead
     localStorage.setItem("bm_db_news_articles", JSON.stringify(updated));
     setDbStats({ articles: NewsArticlesDB.count(), analyses: AnalysisResultsDB.getAll().length });
@@ -328,9 +338,14 @@ export default function AnalyzePage() {
   const handleExportPDF = () => {
     const latestNarrative = NarrativeSnapshotsDB.getLatest();
     exportToPDF({
-      articles: NewsArticlesDB.getRecent(20),
-      analyses: AnalysisResultsDB.getRecent(20),
+      articles: NewsArticlesDB.getRecent(30),
+      analyses: AnalysisResultsDB.getRecent(30),
       narrative: latestNarrative || undefined,
+      dashboardState: {
+        international: liveInternational,
+        pakistan: livePakistan,
+        narratives: liveNarratives,
+      },
       title: "BiasMapper Dashboard Report",
     });
   };

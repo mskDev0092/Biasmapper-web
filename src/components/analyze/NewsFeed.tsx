@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Newspaper,
   ExternalLink,
@@ -14,9 +13,15 @@ import {
   Brain,
   AlertTriangle,
   Clock,
-  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Sparkles,
   Filter,
+  Loader2,
+  Globe,
+  Zap,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import {
   type NewsArticle,
@@ -24,7 +29,14 @@ import {
   NewsArticlesDB,
   AnalysisResultsDB,
 } from "@/lib/local-db";
-import { fetchAndStoreNews, searchAndStoreNews, getNewsFeed } from "@/lib/news-service";
+import { fetchAndStoreNews, searchAndStoreNews, getNewsFeed, isNewsApiConfigured } from "@/lib/news-service";
+import Link from "next/link";
+
+// ─── Constants ──────────────────────────────────────────────────────
+
+const ITEMS_PER_PAGE = 10;
+
+// ─── Component ──────────────────────────────────────────────────────
 
 interface NewsFeedProps {
   onAnalyzeArticle?: (article: NewsArticle) => Promise<void>;
@@ -32,7 +44,7 @@ interface NewsFeedProps {
   maxHeight?: string;
 }
 
-export function NewsFeed({ onAnalyzeArticle, isLLMReady, maxHeight = "600px" }: NewsFeedProps) {
+export function NewsFeed({ onAnalyzeArticle, isLLMReady, maxHeight = "750px" }: NewsFeedProps) {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [analyses, setAnalyses] = useState<Map<string, AnalysisResult>>(new Map());
   const [loading, setLoading] = useState(false);
@@ -40,17 +52,19 @@ export function NewsFeed({ onAnalyzeArticle, isLLMReady, maxHeight = "600px" }: 
   const [searching, setSearching] = useState(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [filterCountry, setFilterCountry] = useState<string>("all");
-  const [visibleCount, setVisibleCount] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const feedRef = useRef<HTMLDivElement>(null);
 
-  // Load articles from LocalDB on mount
+  // Load articles from LocalDB
   const loadArticles = useCallback(() => {
     const feed = getNewsFeed({
       country: filterCountry === "all" ? undefined : filterCountry,
-      limit: 100,
+      limit: 1000, // Load enough for local paging
     });
     setArticles(feed);
 
-    // Load matching analyses
+    // Sync analyses
     const allAnalyses = AnalysisResultsDB.getAll();
     const map = new Map<string, AnalysisResult>();
     allAnalyses.forEach((a) => {
@@ -63,34 +77,48 @@ export function NewsFeed({ onAnalyzeArticle, isLLMReady, maxHeight = "600px" }: 
     loadArticles();
   }, [loadArticles]);
 
-  // Fetch fresh news
-  const handleFetchNews = async () => {
+  const totalPages = Math.max(1, Math.ceil(articles.length / ITEMS_PER_PAGE));
+  const currentArticles = articles.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  const goToPage = (p: number) => {
+    setCurrentPage(p);
+    feedRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // FETCH FRESH from APIs
+  const handleFetchNews = async (isLoadMore = false) => {
     setLoading(true);
+    setFetchError(null);
     try {
-      await fetchAndStoreNews();
+      // Increase amount if load more? No, just fetch fresh into DB
+      const fetched = await fetchAndStoreNews({ maxPerSource: 20 });
+      if (fetched.length === 0 && articles.length === 0) {
+        setFetchError("No fresh articles found. Make sure your API keys are correct in Settings.");
+      }
       loadArticles();
-    } catch (e) {
-      console.error("Fetch news error:", e);
+      if (!isLoadMore) setCurrentPage(1);
+    } catch (e: any) {
+      setFetchError(e.message || "Failed to fetch from news APIs");
     } finally {
       setLoading(false);
     }
   };
 
-  // Search news
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     setSearching(true);
+    setFetchError(null);
     try {
-      await searchAndStoreNews(searchQuery);
+      await searchAndStoreNews(searchQuery, 15);
       loadArticles();
-    } catch (e) {
-      console.error("Search news error:", e);
+      setCurrentPage(1);
+    } catch (e: any) {
+      setFetchError(e.message || "Search failed");
     } finally {
       setSearching(false);
     }
   };
 
-  // Analyze single article
   const handleAnalyze = async (article: NewsArticle) => {
     if (!onAnalyzeArticle || analyzingId) return;
     setAnalyzingId(article.id);
@@ -98,23 +126,9 @@ export function NewsFeed({ onAnalyzeArticle, isLLMReady, maxHeight = "600px" }: 
       await onAnalyzeArticle(article);
       loadArticles();
     } catch (e) {
-      console.error("Analyze error:", e);
+      console.error(e);
     } finally {
       setAnalyzingId(null);
-    }
-  };
-
-  const formatDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      const now = new Date();
-      const diffMs = now.getTime() - d.getTime();
-      const diffHrs = Math.floor(diffMs / 3600000);
-      if (diffHrs < 1) return `${Math.floor(diffMs / 60000)}m ago`;
-      if (diffHrs < 24) return `${diffHrs}h ago`;
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    } catch {
-      return "";
     }
   };
 
@@ -126,213 +140,288 @@ export function NewsFeed({ onAnalyzeArticle, isLLMReady, maxHeight = "600px" }: 
     B: "#fbbf24", "B+": "#f59e0b", "B++": "#d97706",
   };
 
-  const displayArticles = articles.slice(0, visibleCount);
-
   return (
-    <div className="space-y-4">
-      {/* Search & Controls */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1 flex gap-2">
+    <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+      {/* Search Header */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+        <div className="md:col-span-6 relative">
           <Input
             placeholder="Search news topics..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+            className="bg-slate-900/50 border-slate-700/50 pl-10 text-white placeholder-slate-500 focus:ring-blue-500/50"
           />
-          <Button
-            onClick={handleSearch}
-            disabled={searching || !searchQuery.trim()}
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {searching ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-          </Button>
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+          {searching && (
+            <div className="absolute right-3 top-2.5">
+              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+            </div>
+          )}
         </div>
-        <div className="flex gap-2">
+
+        <div className="md:col-span-3">
           <select
             value={filterCountry}
             onChange={(e) => setFilterCountry(e.target.value)}
-            className="bg-slate-700 border border-slate-600 rounded-md px-3 py-1.5 text-sm text-white"
-            aria-label="Filter by country"
+            className="w-full bg-slate-900/50 border border-slate-700/50 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/30"
           >
-            <option value="all">All Countries</option>
-            <option value="us">🇺🇸 US</option>
-            <option value="pk">🇵🇰 Pakistan</option>
-            <option value="gb">🇬🇧 UK</option>
+            <option value="all">🌏 Global Feed</option>
+            <option value="us">🇺🇸 United States</option>
+            <option value="pk">🇵🇰 Pakistan News</option>
+            <option value="gb">🇬🇧 United Kingdom</option>
+            <option value="ca">🇨🇦 Canada</option>
           </select>
+        </div>
+
+        <div className="md:col-span-3">
           <Button
-            onClick={handleFetchNews}
+            onClick={() => handleFetchNews()}
             disabled={loading}
-            size="sm"
-            variant="outline"
-            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all group shadow-lg shadow-blue-500/10"
           >
             {loading ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
             ) : (
-              <RefreshCw className="h-4 w-4" />
+              <Zap className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
             )}
-            <span className="ml-2 hidden sm:inline">Fetch</span>
+            Fetch Fresh
           </Button>
         </div>
       </div>
 
       {/* Stats Bar */}
-      <div className="flex gap-3 text-xs text-slate-400">
-        <span className="flex items-center gap-1">
-          <Newspaper className="h-3 w-3" />
-          {articles.length} articles
-        </span>
-        <span className="flex items-center gap-1">
-          <Brain className="h-3 w-3" />
-          {analyses.size} analyzed
-        </span>
+      <div className="flex items-center justify-between px-2">
+        <div className="flex gap-4 text-[10px] sm:text-xs">
+          <span className="flex items-center gap-1.5 text-slate-400 font-medium">
+            <Newspaper className="h-3.5 w-3.5 text-blue-400" />
+            {articles.length} RECENT ARTICLES
+          </span>
+          <span className="flex items-center gap-1.5 text-slate-400 font-medium">
+            <Brain className="h-3.5 w-3.5 text-amber-400" />
+            {analyses.size} PROCESSED
+          </span>
+        </div>
+        {articles.length > 0 && (
+          <div className="text-[10px] font-bold text-slate-500 bg-slate-800/50 px-2 py-0.5 rounded uppercase tracking-widest border border-slate-700/50">
+            Page {currentPage} of {totalPages}
+          </div>
+        )}
       </div>
 
-      {/* Articles Feed */}
+      {/* Error / Empty State */}
+      {fetchError && (
+        <Card className="bg-red-950/20 border-red-900/50">
+          <CardContent className="py-3 flex items-center gap-3">
+            <AlertTriangle className="h-4 w-4 text-red-400" />
+            <span className="text-xs text-red-300">{fetchError}</span>
+          </CardContent>
+        </Card>
+      )}
+
       {articles.length === 0 ? (
-        <Card className="bg-slate-800/30 border-slate-700/50 border-dashed">
-          <CardContent className="pt-8 pb-8 text-center">
-            <Newspaper className="h-12 w-12 text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-400 text-sm mb-4">
-              No articles yet. Configure a News API key in Settings or click Fetch to get started.
+        <Card className="bg-slate-900 border-2 border-dashed border-slate-800">
+          <CardContent className="py-20 text-center">
+            <div className="bg-slate-800/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-700">
+              <Globe className="h-10 w-10 text-slate-500 animate-pulse" />
+            </div>
+            <h3 className="text-white text-lg font-bold mb-2">No Content Synced</h3>
+            <p className="text-slate-500 text-sm max-w-sm mx-auto mb-8 font-medium">
+              Start by fetching news from your configured APIs or the Google RSS fallback.
             </p>
-            <Button
-              onClick={handleFetchNews}
-              disabled={loading}
-              size="sm"
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Fetch News
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button onClick={() => handleFetchNews()} disabled={loading} className="bg-blue-600 hover:bg-blue-500">
+                Sync Latest News
+              </Button>
+              {!isNewsApiConfigured() && (
+                <Button asChild variant="outline" className="border-slate-700 hover:bg-slate-800 text-slate-400">
+                  <Link href="/settings">Set API Keys</Link>
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       ) : (
-        <ScrollArea style={{ maxHeight }} className="pr-3">
-          <div className="space-y-3">
-            {displayArticles.map((article) => {
-              const analysis = analyses.get(article.id);
-              const isAnalyzing = analyzingId === article.id;
+        <div 
+          ref={feedRef}
+          className="space-y-4 overflow-y-auto pr-2 custom-scrollbar smooth-scroll"
+          style={{ maxHeight }}
+        >
+          {currentArticles.map((article) => {
+            const analysis = analyses.get(article.id);
+            const status = analyzingId === article.id ? "analyzing" : analysis ? "done" : "idle";
 
-              return (
-                <Card
-                  key={article.id}
-                  className="bg-slate-800/50 border-slate-700 hover:border-slate-500 transition-all duration-200 group"
-                >
-                  <CardContent className="pt-4 pb-3">
-                    <div className="flex gap-3">
-                      {/* Thumbnail */}
-                      {article.imageUrl && (
-                        <div className="hidden sm:block flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden bg-slate-700">
-                          <img
-                            src={article.imageUrl}
-                            alt=""
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = "none";
-                            }}
-                          />
+            return (
+              <Card 
+                key={article.id} 
+                className="bg-slate-900/60 border-slate-800 hover:border-slate-700 transition-all group overflow-hidden"
+              >
+                <div className={`h-full w-1 absolute left-0 top-0 transition-colors ${status === 'analyzing' ? 'bg-amber-500 animate-pulse' : status === 'done' ? 'bg-blue-500' : 'bg-slate-800'}`} />
+                <CardContent className="p-5">
+                  <div className="flex flex-col sm:flex-row gap-5 items-start">
+                    {/* Thumbnail */}
+                    <div className="w-full sm:w-24 h-24 sm:h-20 bg-slate-800 rounded-xl flex-shrink-0 overflow-hidden relative group-hover:ring-2 ring-slate-700 transition-all">
+                      {article.imageUrl ? (
+                        <img 
+                          src={article.imageUrl} 
+                          alt="" 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                          onError={(e) => (e.currentTarget.style.display = 'none')}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Newspaper className="h-6 w-6 text-slate-600" />
                         </div>
                       )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent" />
+                    </div>
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h4 className="text-sm font-medium text-white leading-snug line-clamp-2 group-hover:text-blue-300 transition-colors">
-                            {article.title}
-                          </h4>
-                          <a
-                            href={article.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-shrink-0 text-slate-500 hover:text-blue-400 transition-colors"
-                            aria-label={`Open ${article.title} in new tab`}
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <h4 className="font-bold text-white text-base leading-tight group-hover:text-blue-400 transition-colors">
+                          {article.title}
+                        </h4>
+                        <a 
+                          href={article.url} 
+                          target="_blank" 
+                          className="p-2 rounded-lg bg-slate-800/50 text-slate-500 hover:text-blue-400 hover:bg-blue-900/20 transition-all"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </div>
+                      
+                      {article.description && (
+                        <p className="text-xs text-slate-400 line-clamp-2 mb-4 font-medium leading-relaxed">
+                          {article.description}
+                        </p>
+                      )}
+
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Badge className="bg-slate-800 text-slate-300 font-bold border-none text-[10px] px-2 py-0.5">
+                          {article.source}
+                        </Badge>
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          <Clock className="h-3 w-3" />
+                          {new Date(article.publishedAt).toLocaleDateString()}
                         </div>
 
-                        {article.description && (
-                          <p className="text-xs text-slate-400 line-clamp-1 mb-2">
-                            {article.description}
-                          </p>
-                        )}
-
-                        <div className="flex items-center flex-wrap gap-2">
-                          <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">
-                            {article.source}
-                          </Badge>
-                          <span className="text-xs text-slate-500 flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatDate(article.publishedAt)}
-                          </span>
-
-                          {/* Analysis badges */}
-                          {analysis ? (
-                            <div className="flex gap-1 ml-auto">
-                              <Badge
-                                style={{ backgroundColor: biasColorMap[analysis.dominantBias] || "#6b7280" }}
-                                className="text-white text-xs"
+                        {/* Analysis Indicators */}
+                        <div className="ml-auto flex items-center gap-2">
+                          {status === "done" ? (
+                            <div className="flex gap-2 items-center">
+                              <Badge 
+                                style={{ backgroundColor: biasColorMap[analysis!.dominantBias] }}
+                                className="text-white shadow-lg shadow-black/40 px-3"
                               >
-                                {analysis.dominantBias}
+                                {analysis!.dominantBias}
                               </Badge>
-                              {analysis.cognitiveBiases.length > 0 && (
-                                <Badge className="bg-amber-600/40 text-amber-300 text-xs border-none">
-                                  <AlertTriangle className="h-2.5 w-2.5 mr-1" />
-                                  {analysis.cognitiveBiases.length} bias
-                                </Badge>
-                              )}
-                              {analysis.logicalFallacies.length > 0 && (
-                                <Badge className="bg-red-600/40 text-red-300 text-xs border-none">
-                                  {analysis.logicalFallacies.length} fallacy
-                                </Badge>
+                              {analysis!.cognitiveBiases.length > 0 && (
+                                <div className="p-1 px-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  <span className="text-[10px] font-bold">{analysis!.cognitiveBiases.length}</span>
+                                </div>
                               )}
                             </div>
                           ) : (
                             <Button
                               onClick={() => handleAnalyze(article)}
-                              disabled={!isLLMReady || isAnalyzing}
+                              disabled={!isLLMReady || status === "analyzing"}
+                              className="h-8 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/50 transition-all"
                               size="sm"
-                              variant="ghost"
-                              className="ml-auto h-6 px-2 text-xs text-slate-400 hover:text-amber-400"
                             >
-                              {isAnalyzing ? (
-                                <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                              {status === "analyzing" ? (
+                                <Loader2 className="h-3 w-3 animate-spin mr-2" />
                               ) : (
-                                <Sparkles className="h-3 w-3 mr-1" />
+                                <Sparkles className="h-3 w-3 mr-2 text-amber-500" />
                               )}
-                              {isAnalyzing ? "Analyzing..." : "Analyze"}
+                              {status === "analyzing" ? "Analyzing" : "Classify"}
                             </Button>
                           )}
                         </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-
-            {/* Load More */}
-            {visibleCount < articles.length && (
-              <Button
-                onClick={() => setVisibleCount((v) => v + 20)}
-                variant="ghost"
-                className="w-full text-slate-400 hover:text-white"
-              >
-                <ChevronDown className="h-4 w-4 mr-2" />
-                Show More ({articles.length - visibleCount} remaining)
-              </Button>
-            )}
-          </div>
-        </ScrollArea>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
+
+      {/* Pagination Fix / Load More UI */}
+      {articles.length > ITEMS_PER_PAGE && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-800/50">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="border-slate-800 hover:bg-slate-800 text-slate-400 h-9"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+            </Button>
+            
+            <div className="hidden sm:flex items-center gap-1">
+              {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                const p = i + 1;
+                return (
+                  <Button
+                    key={p}
+                    variant={currentPage === p ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => goToPage(p)}
+                    className={`h-9 w-9 p-0 ${currentPage === p ? 'bg-blue-600' : 'text-slate-500'}`}
+                  >
+                    {p}
+                  </Button>
+                );
+              })}
+              {totalPages > 5 && <span className="text-slate-600 px-2">...</span>}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="border-slate-800 hover:bg-slate-800 text-slate-400 h-9"
+            >
+              Next <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleFetchNews(true)}
+            className="text-slate-500 hover:text-blue-400 hover:bg-transparent text-[10px] font-bold uppercase tracking-widest"
+          >
+            <RefreshCw className={`h-3 w-3 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Sync More From Web
+          </Button>
+        </div>
+      )}
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(15, 23, 42, 0.5);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #334155;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #475569;
+        }
+        .smooth-scroll {
+          scroll-behavior: smooth;
+        }
+      `}</style>
     </div>
   );
 }
