@@ -49,7 +49,7 @@ import {
 import { maskAPIKey } from "@/lib/encryption-utils";
 import { createChatCompletion } from "@/lib/api-service";
 import { detectLocalServices, DetectedService } from "@/lib/service-detection";
-import { NewsSettingsDB, type NewsApiSettings } from "@/lib/local-db";
+import { NewsSettingsDB, type NewsApiSettings, clearAllData } from "@/lib/local-db";
 import Link from "next/link";
 
 export default function SettingsPage() {
@@ -137,7 +137,9 @@ export default function SettingsPage() {
   };
 
   const handleClear = () => {
-    clearAPIConfig();
+    if (!confirm("Are you sure you want to PERMANENTLY delete all local data, analyses, and news articles? This cannot be undone.")) return;
+    
+    clearAllData();
     setConfig({
       endpoint: "",
       apiKey: "",
@@ -145,8 +147,16 @@ export default function SettingsPage() {
       temperature: 0.7,
       maxTokens: 2048,
     });
+    setNewsSettings({
+      preferredProvider: "gnews",
+      gnewsApiKey: "",
+      newsApiKey: "",
+      currentsApiKey: "",
+      fetchCountries: ["us"],
+    });
     setSelectedProvider("Custom");
     setTestResult(null);
+    alert("All local data has been wiped.");
   };
 
   const handleTest = async () => {
