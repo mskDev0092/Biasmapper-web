@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
 import { Search, RefreshCw } from "lucide-react";
+import { ThinkingProcess } from "./ThinkingProcess";
 
 export interface AnalyzeTabProps {
   customText: string;
@@ -26,6 +27,7 @@ export function AnalyzeTab({
 }: AnalyzeTabProps) {
   return (
     <div className="space-y-6">
+      <ThinkingProcess />
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">

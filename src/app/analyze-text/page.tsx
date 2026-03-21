@@ -25,6 +25,7 @@ import { isAPIConfigured } from "@/lib/api-config";
 import { analyzeTextBias, debiasText, type BiasAnalysis } from "@/lib/api-service";
 import { AnalysisResultsDB, type AnalysisResult } from "@/lib/local-db";
 import { exportAnalysesToCSV, exportToPDF } from "@/lib/export-utils";
+import { ThinkingProcess } from "@/components/analyze/ThinkingProcess";
 
 const biasColors: Record<string, string> = {
   "L++": "#dc2626", "L+": "#f87171", L: "#fca5a5",
@@ -113,6 +114,9 @@ export default function AnalyzeTextPage() {
             </p>
           </div>
         </div>
+
+        {/* Introduction / Thinking Process */}
+        <ThinkingProcess />
 
         {/* Input */}
         <Card className="bg-slate-800/50 border-slate-700">

@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Zap, RefreshCw, AlertTriangle, FileDown, Copy, Check } from "lucide-react";
 import { isAPIConfigured } from "@/lib/api-config";
 import { generateWithBias } from "@/lib/api-service";
+import { ThinkingProcess } from "@/components/analyze/ThinkingProcess";
 
 const biasColors: Record<string, string> = {
   "L++": "#dc2626", "L+": "#f87171", L: "#fca5a5",
@@ -90,6 +91,9 @@ export default function GenerateTextPage() {
             </p>
           </div>
         </div>
+
+        {/* Introduction / Thinking Process */}
+        <ThinkingProcess />
 
         {/* Input */}
         <Card className="bg-slate-800/50 border-slate-700">

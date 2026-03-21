@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ArrowLeftRight, CheckCircle2, RefreshCw } from "lucide-react";
+import { ThinkingProcess } from "./ThinkingProcess";
 
 export interface DebiasTabProps {
   debiasText_input: string;
@@ -25,6 +26,7 @@ export function DebiasTab({
 }: DebiasTabProps) {
   return (
     <div className="space-y-6">
+      <ThinkingProcess />
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">

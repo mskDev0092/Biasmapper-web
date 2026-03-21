@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Zap, RefreshCw } from "lucide-react";
+import { ThinkingProcess } from "./ThinkingProcess";
 
 export interface GenerateTabProps {
   generateTopic: string;
@@ -30,6 +31,7 @@ export function GenerateTab({
 }: GenerateTabProps) {
   return (
     <div className="space-y-6">
+      <ThinkingProcess />
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
