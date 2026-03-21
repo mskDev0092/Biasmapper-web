@@ -129,8 +129,8 @@ export default function AnalyzeTextPage() {
         conclusions: biasResult.conclusions || [],
       });
       setResult(stored);
-      // Refresh history
-      setHistory(AnalysisResultsDB.getRecent(100).filter(a => a.source === "Manual Input"));
+      // Refresh history immediately
+      setHistory(prev => [stored, ...prev]);
     } catch (e: any) {
       console.error("Analysis error:", e);
     } finally {

@@ -146,6 +146,29 @@ export default function AnalyzePage() {
   const [lmStudioStatus, setLmStudioStatus] = useState<LMStudioConnectionStatus | null>(null);
   const [autoConnecting, setAutoConnecting] = useState(false); // NOT auto on mount
   const [autoOperating, setAutoOperating] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+
+  // Persistence for analysis state
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedAuto = localStorage.getItem("bm_auto_operating") === "true";
+      const savedProgress = parseFloat(localStorage.getItem("bm_analysis_progress") || "0");
+      if (savedAuto) setAutoOperating(true);
+      if (savedProgress > 0) setAnalysisProgress(savedProgress);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("bm_auto_operating", autoOperating.toString());
+    }
+  }, [autoOperating]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("bm_analysis_progress", analysisProgress.toString());
+    }
+  }, [analysisProgress]);
 
   // Live data state
   const [liveInternational, setLiveInternational] = useState(STATIC_INTERNATIONAL);
@@ -158,7 +181,6 @@ export default function AnalyzePage() {
   const [countdownTimer, setCountdownTimer] = useState(600);
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
-  const [analysisProgress, setAnalysisProgress] = useState(0);
   const [selectedHistoricalAnalysis, setSelectedHistoricalAnalysis] = useState<AnalysisResult | null>(null);
 
   // DB stats

@@ -233,7 +233,7 @@ JSON STRUCTURE:
 
   if (startIdx >= 0 && endIdx > startIdx) {
     try {
-      const jsonStr = cleanResponse.substring(startIdx, endIdx + 1);
+      const jsonStr = cleanResponse.substring(startIdx, endIdx + 1).trim();
       const parsed = JSON.parse(jsonStr);
 
       // Validate it's an object (not array)
@@ -482,7 +482,7 @@ Return ONLY valid JSON (do not include markdown or code blocks):
 
   if (startIdx >= 0 && endIdx > startIdx) {
     try {
-      const jsonStr = cleanResponse.substring(startIdx, endIdx + 1);
+      const jsonStr = cleanResponse.substring(startIdx, endIdx + 1).trim();
       const parsed = JSON.parse(jsonStr);
 
       // Validate structure
@@ -623,7 +623,7 @@ Return ONLY a JSON array of headline strings (no markdown, no code blocks):
 
     if (startIdx >= 0 && endIdx > startIdx) {
       try {
-        const jsonStr = cleanResponse.substring(startIdx, endIdx + 1);
+        const jsonStr = cleanResponse.substring(startIdx, endIdx + 1).trim();
         const parsed = JSON.parse(jsonStr);
         // Ensure we get an array of strings
         if (Array.isArray(parsed)) {
@@ -700,7 +700,7 @@ Return a JSON array of 5-10 recent verified headlines (no markdown, no code bloc
 
     if (startIdx >= 0 && endIdx > startIdx) {
       try {
-        const jsonStr = cleanResponse.substring(startIdx, endIdx + 1);
+        const jsonStr = cleanResponse.substring(startIdx, endIdx + 1).trim();
         const parsed = JSON.parse(jsonStr);
         // Ensure we get an array of strings
         if (Array.isArray(parsed)) {

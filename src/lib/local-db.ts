@@ -430,11 +430,23 @@ export function clearAllData(): void {
   OutletProfilesDB.clear();
   NewsSettingsDB.reset();
   
-  // Clear persistent states
+  // Clear persistent UI states
   if (typeof window !== "undefined") {
-    localStorage.removeItem("biasmapper_analysis_data");
-    localStorage.removeItem("bias_mapper_api_config");
-    localStorage.removeItem("bm_app_state"); // future-proofing
-    console.log("🔥 FULL SYSTEM RESET: Local data cleared");
+    const keysToRemove = [
+      "biasmapper_analysis_data", 
+      "bias_mapper_api_config",
+      "bm_app_state",
+      "analyze_text_input",
+      "analyze_text_result", 
+      "analyze_text_debias",
+      "generate_text_input",
+      "generate_text_result",
+      "generate_text_settings",
+      "lm_studio_status",
+      "last_news_sync_time"
+    ];
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    console.log("🔥 FULL SYSTEM RESET: All local data and UI states cleared");
   }
 }
