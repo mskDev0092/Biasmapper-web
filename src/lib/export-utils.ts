@@ -19,6 +19,7 @@ import {
   NarrativeSnapshotsDB,
 } from "./local-db";
 import { loadAnalysisData } from "./analysis-storage";
+import type { CountryConfig } from "./country-config";
 
 // ─── JSON Export / Import ───────────────────────────────────────────
 
@@ -28,12 +29,17 @@ export interface FullExportData extends LocalDBExport {
     pakistan: any[];
     narratives: any;
   };
+  exportedAt: string;
+  version: string;
+  selectedCountry?: string;
 }
 
 export function exportToJSON(): void {
   const data: FullExportData = {
     ...exportAllData(),
     dashboardState: loadAnalysisData() || undefined,
+    exportedAt: new Date().toISOString(),
+    version: "2.0.0",
   };
   const json = JSON.stringify(data, null, 2);
   downloadFile(json, `biasmapper-export-${dateStamp()}.json`, "application/json");
@@ -101,7 +107,7 @@ export function exportAnalysesToCSV(analyses: AnalysisResult[]): void {
   downloadFile(csv, `biasmapper-analyses-${dateStamp()}.csv`, "text/csv");
 }
 
-// ─── PDF Export (HTML-based, comprehensive dashboard report) ────────
+// ─── PDF Export (Excellent Professional Formatting) ────────
 
 export function exportToPDF(options: {
   articles?: NewsArticle[];
@@ -110,8 +116,9 @@ export function exportToPDF(options: {
   outletProfiles?: OutletProfile[];
   dashboardState?: { international: any[]; pakistan: any[]; narratives: any } | null;
   title?: string;
+  country?: CountryConfig;
 }): void {
-  const { title = "BiasMapper Dashboard Report" } = options;
+  const { title = "BiasMapper Dashboard Report", country } = options;
 
   // Gather comprehensive data
   const dashState = options.dashboardState || loadAnalysisData();
@@ -121,7 +128,7 @@ export function exportToPDF(options: {
   const outlets = options.outletProfiles || OutletProfilesDB.getAll();
 
   const international = dashState?.international || [];
-  const pakistan = dashState?.pakistan || [];
+  const countryData = dashState?.pakistan || [];
   const narrativeData = dashState?.narratives;
 
   const biasColorMap: Record<string, string> = {
@@ -140,24 +147,34 @@ export function exportToPDF(options: {
     B: "Oppositional", "B+": "Grassroots", "B++": "Radical",
   };
 
-  // Compute bias distribution for text-based chart
-  function biasDistribution(outletList: any[]): string {
+  // Compute bias distribution with visual bars
+  function biasDistribution(outletList: any[], accentColor: string): string {
+    if (outletList.length === 0) return '<p class="text-slate-500 italic">No data available</p>';
     const dist: Record<string, number> = {};
     outletList.forEach((o: any) => {
       dist[o.dominant_bias] = (dist[o.dominant_bias] || 0) + 1;
     });
     return Object.entries(dist)
+      .sort((a, b) => b[1] - a[1])
       .map(([bias, count]) => {
         const pct = Math.round((count / outletList.length) * 100);
         const label = biasLabels[bias] || bias;
         const color = biasColorMap[bias] || "#6b7280";
-        return `<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-          <span class="badge" style="background: ${color}; min-width: 40px; text-align: center;">${bias}</span>
-          <div style="flex: 1; background: #1e293b; border-radius: 4px; height: 20px; overflow: hidden;">
-            <div style="width: ${pct}%; height: 100%; background: ${color}; border-radius: 4px;"></div>
-          </div>
-          <span style="font-size: 12px; color: #94a3b8; min-width: 60px;">${count} (${pct}%)</span>
-        </div>`;
+        return `
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px; padding: 12px 16px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8)); border-radius: 12px; border: 1px solid rgba(51, 65, 85, 0.5);">
+            <span style="background: linear-gradient(135deg, ${color}, ${color}dd); color: white; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; min-width: 50px; text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+              ${bias}
+            </span>
+            <div style="flex: 1; background: rgba(15, 23, 42, 0.8); border-radius: 6px; height: 28px; overflow: hidden; position: relative; border: 1px solid rgba(51, 65, 85, 0.5);">
+              <div style="width: ${pct}%; height: 100%; background: linear-gradient(90deg, ${color}, ${color}cc); border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px;">
+                <span style="color: white; font-size: 11px; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">${pct}%</span>
+              </div>
+            </div>
+            <div style="text-align: right; min-width: 80px;">
+              <span style="font-size: 14px; font-weight: 700; color: #e2e8f0;">${count}</span>
+              <span style="font-size: 11px; color: #64748b; display: block;">outlet${count > 1 ? 's' : ''}</span>
+            </div>
+          </div>`;
       }).join("");
   }
 
@@ -169,9 +186,24 @@ export function exportToPDF(options: {
     return String(value);
   }
 
-  // Match articles to analyses for the "related" section
+  // Format severity badge
+  function severityBadge(severity: string): string {
+    const colors: Record<string, string> = {
+      high: "linear-gradient(135deg, #dc2626, #b91c1c)",
+      medium: "linear-gradient(135deg, #f59e0b, #d97706)",
+      low: "linear-gradient(135deg, #6b7280, #4b5563)",
+    };
+    const bg = colors[severity] || colors.low;
+    return `<span style="background: ${bg}; color: white; padding: 3px 10px; border-radius: 6px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.2);">${severity}</span>`;
+  }
+
+  // Match articles to analyses
   const analysisMap = new Map<string, AnalysisResult>();
   analyses.forEach(a => { if (a.articleId) analysisMap.set(a.articleId, a); });
+
+  // Country name
+  const countryName = country ? `${country.flag} ${country.name}` : 'Regional';
+  const countryDescription = country?.description || '';
 
   const html = `
 <!DOCTYPE html>
@@ -180,66 +212,381 @@ export function exportToPDF(options: {
   <meta charset="UTF-8">
   <title>${title}</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; padding: 40px; max-width: 1200px; margin: 0 auto; }
-    .header { text-align: center; margin-bottom: 48px; padding-bottom: 24px; border-bottom: 2px solid #334155; }
-    .header h1 { font-size: 32px; color: #f8fafc; margin-bottom: 8px; }
-    .header p { color: #94a3b8; font-size: 14px; }
-    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 32px; }
-    .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; text-align: center; }
-    .stat-card .value { font-size: 28px; font-weight: 700; color: #f8fafc; }
-    .stat-card .label { font-size: 12px; color: #94a3b8; margin-top: 4px; }
-    .section { margin-bottom: 36px; page-break-inside: avoid; }
-    .section h2 { font-size: 20px; color: #f1f5f9; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #1e293b; display: flex; align-items: center; gap: 8px; }
-    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-    .card h3 { font-size: 15px; color: #f8fafc; margin-bottom: 8px; }
-    .card p { font-size: 13px; color: #94a3b8; line-height: 1.6; }
-    .badge { display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; color: white; margin-right: 6px; }
-    .badge-outline { background: transparent !important; border: 1px solid; }
-    .meta { font-size: 12px; color: #64748b; margin-top: 8px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .outlet-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #1e293b; }
+    
+    body { 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      color: #e2e8f0;
+      padding: 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    
+    /* Header Section */
+    .report-header {
+      text-align: center;
+      margin-bottom: 48px;
+      padding: 48px;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+      border-radius: 24px;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .report-header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+      animation: pulse 4s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+    
+    .report-header h1 { 
+      font-size: 42px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    
+    .report-header .subtitle {
+      color: #94a3b8;
+      font-size: 15px;
+      font-weight: 500;
+      position: relative;
+    }
+    
+    .report-header .timestamp {
+      color: #64748b;
+      font-size: 13px;
+      margin-top: 16px;
+      font-weight: 500;
+      position: relative;
+    }
+    
+    /* Stats Grid */
+    .stats-grid { 
+      display: grid; 
+      grid-template-columns: repeat(4, 1fr); 
+      gap: 20px; 
+      margin-bottom: 48px; 
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(51, 65, 85, 0.5);
+      border-radius: 20px;
+      padding: 28px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    }
+    
+    .stat-card:nth-child(2)::before { background: linear-gradient(90deg, #10b981, #059669); }
+    .stat-card:nth-child(3)::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+    .stat-card:nth-child(4)::before { background: linear-gradient(90deg, #8b5cf6, #7c3aed); }
+    
+    .stat-card .value { 
+      font-size: 48px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #f8fafc, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+    }
+    
+    .stat-card .label { 
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    
+    .stat-card .icon {
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+    
+    /* Section Styles */
+    .section { 
+      margin-bottom: 48px;
+      page-break-inside: avoid;
+    }
+    
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid rgba(59, 130, 246, 0.2);
+    }
+    
+    .section-header h2 { 
+      font-size: 28px;
+      color: #f8fafc;
+      font-weight: 700;
+    }
+    
+    .section-badge {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    
+    /* Card Styles */
+    .card { 
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.7));
+      border: 1px solid rgba(51, 65, 85, 0.4);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+      transition: border-color 0.3s ease, transform 0.2s ease;
+    }
+    
+    .card:hover {
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+    
+    .card h3 { 
+      font-size: 18px;
+      color: #f8fafc;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+    
+    .card p { 
+      font-size: 15px;
+      color: #94a3b8;
+      line-height: 1.7;
+    }
+    
+    /* Badge Styles */
+    .badge { 
+      display: inline-block;
+      padding: 5px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: white;
+      margin-right: 8px;
+      box-shadow: 0 2px 4px -1px rgba(0,0,0,0.2);
+    }
+    
+    .badge-outline { 
+      background: transparent !important;
+      border: 2px solid;
+      box-shadow: none;
+    }
+    
+    /* Outlet Row */
+    .outlet-row { 
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.5), rgba(30, 41, 59, 0.3));
+      border-radius: 14px;
+      margin-bottom: 10px;
+      transition: background 0.3s ease;
+    }
+    
     .outlet-row:last-child { border-bottom: none; }
-    .outlet-name { font-weight: 600; color: #f8fafc; font-size: 14px; }
-    .outlet-desc { font-size: 12px; color: #94a3b8; margin-top: 2px; }
-    .conf-bar { width: 60px; height: 6px; background: #1e293b; border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 8px; }
-    .conf-fill { height: 100%; border-radius: 3px; }
-    .narrative-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; }
-    .narrative-meta { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
-    .narrative-meta .label { font-size: 11px; color: #64748b; margin-right: 4px; }
-    .article-analysis { background: #1a2332; border-left: 3px solid; padding: 12px 16px; margin-top: 8px; border-radius: 0 8px 8px 0; }
-    .bias-list { margin-top: 8px; }
-    .bias-item { font-size: 12px; color: #cbd5e1; padding: 4px 0; border-bottom: 1px solid #1e293b; }
-    .footer { text-align: center; margin-top: 48px; padding-top: 24px; border-top: 2px solid #334155; color: #475569; font-size: 12px; }
+    
+    .outlet-name { 
+      font-weight: 700;
+      color: #f8fafc;
+      font-size: 16px;
+    }
+    
+    .outlet-desc { 
+      font-size: 14px;
+      color: #94a3b8;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+    
+    /* Narrative Card */
+    .narrative-card { 
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.6));
+      border: 1px solid rgba(251, 191, 36, 0.2);
+      border-radius: 18px;
+      padding: 24px;
+      transition: border-color 0.3s ease;
+    }
+    
+    .narrative-card:hover {
+      border-color: rgba(251, 191, 36, 0.4);
+    }
+    
+    .narrative-meta { 
+      display: flex;
+      gap: 24px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .narrative-meta .label { 
+      font-size: 11px;
+      color: #64748b;
+      margin-right: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    
+    /* Article Analysis Box */
+    .article-analysis { 
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.4));
+      border-left: 4px solid;
+      padding: 20px;
+      margin-top: 16px;
+      border-radius: 0 14px 14px 0;
+    }
+    
+    /* Bias Item */
+    .bias-list { margin-top: 16px; }
+    
+    .bias-item { 
+      font-size: 14px;
+      color: #cbd5e1;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.5), rgba(30, 41, 59, 0.3));
+      border-radius: 10px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    
+    .bias-item:last-child { border-bottom: none; }
+    
+    /* Footer */
+    .footer { 
+      text-align: center;
+      margin-top: 64px;
+      padding: 32px;
+      border-top: 1px solid rgba(51, 65, 85, 0.5);
+      color: #64748b;
+      font-size: 14px;
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.5));
+      border-radius: 20px;
+    }
+    
+    .footer-logo {
+      font-size: 20px;
+      font-weight: 800;
+      color: #f8fafc;
+      margin-bottom: 8px;
+    }
+    
+    /* Grid Layout */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .report-header h1 { font-size: 32px; }
+      .section-header h2 { font-size: 22px; }
+    }
+    
+    /* Print Styles */
     @media print {
-      body { background: white; color: #1e293b; padding: 20px; }
-      .card, .stat-card, .narrative-card { border-color: #e2e8f0; background: #f8fafc; }
-      .card h3, .outlet-name, .stat-card .value { color: #1e293b; }
+      body { 
+        background: white;
+        color: #1e293b;
+        padding: 20px;
+      }
+      
+      .card, .stat-card, .narrative-card, .outlet-row, .report-header { 
+        border-color: #e2e8f0;
+        background: #f8fafc;
+        break-inside: avoid;
+      }
+      
+      .card h3, .outlet-name, .stat-card .value, .section-header h2, .report-header h1 { 
+        color: #1e293b;
+        -webkit-text-fill-color: #1e293b;
+      }
+      
       .card p, .outlet-desc, .stat-card .label { color: #475569; }
+      
+      .badge { box-shadow: none; }
+      
+      .stat-card::before { opacity: 0.5; }
+      
+      .report-header { background: #f1f5f9; }
+      
+      .bias-item { background: #f8fafc; border-color: #e2e8f0; }
     }
   </style>
 </head>
 <body>
-  <div class="header">
+  <!-- Header -->
+  <div class="report-header">
     <h1>⚖️ ${title}</h1>
-    <p>Generated on ${new Date().toLocaleString()} • BiasMapper Comprehensive Report</p>
+    <p class="subtitle">Comprehensive Bias Analysis & Intelligence Report</p>
+    <p class="timestamp">
+      Generated on ${new Date().toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' })}
+      ${country ? ` • Region: ${countryName}` : ''}
+    </p>
   </div>
 
   <!-- Stats Summary -->
-  <div class="stats-row">
+  <div class="stats-grid">
     <div class="stat-card">
+      <div class="icon">🌍</div>
       <div class="value">${international.length}</div>
       <div class="label">International Outlets</div>
     </div>
     <div class="stat-card">
-      <div class="value">${pakistan.length}</div>
-      <div class="label">Pakistan Outlets</div>
+      <div class="icon">${country?.flag || '🏳️'}</div>
+      <div class="value">${countryData.length}</div>
+      <div class="label">${countryName} Outlets</div>
     </div>
     <div class="stat-card">
+      <div class="icon">📰</div>
       <div class="value">${articles.length}</div>
       <div class="label">News Articles</div>
     </div>
     <div class="stat-card">
+      <div class="icon">🔍</div>
       <div class="value">${analyses.length}</div>
       <div class="label">Analyses</div>
     </div>
@@ -248,22 +595,32 @@ export function exportToPDF(options: {
   ${international.length > 0 ? `
   <!-- International Bias Distribution -->
   <div class="section">
-    <h2>🌍 International Media Bias Distribution</h2>
-    <div class="card">
-      ${biasDistribution(international)}
+    <div class="section-header">
+      <h2>🌍 International Media Bias Distribution</h2>
+      <span class="section-badge">${international.length} Outlets</span>
     </div>
-    <div class="card" style="margin-top: 12px;">
-      <h3>Outlet Breakdown</h3>
+    <div class="card">
+      ${biasDistribution(international, '#3b82f6')}
+    </div>
+    <div class="card" style="margin-top: 20px;">
+      <h3>📊 Outlet Breakdown</h3>
       ${international.map((o: any) => `
         <div class="outlet-row">
-          <div>
+          <div style="flex: 1; min-width: 0;">
             <div class="outlet-name">${o.outlet}</div>
             <div class="outlet-desc">${o.analysis}</div>
+            ${o.key_themes?.length > 0 ? `
+              <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px;">
+                ${o.key_themes.slice(0, 3).map((t: string) => `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-size: 10px; padding: 3px 8px;">${t}</span>`).join('')}
+              </div>
+            ` : ''}
           </div>
-          <div style="text-align: right; flex-shrink: 0;">
-            <span class="badge" style="background: ${biasColorMap[o.dominant_bias] || "#6b7280"}">${o.dominant_bias}</span>
-            <span class="badge badge-outline" style="border-color: ${biasColorMap[o.secondary_bias] || "#6b7280"}; color: ${biasColorMap[o.secondary_bias] || "#6b7280"}">${o.secondary_bias}</span>
-            <span style="font-size: 11px; color: #94a3b8;">${Math.round(o.confidence * 100)}%</span>
+          <div style="text-align: right; flex-shrink: 0; margin-left: 20px;">
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+              <span class="badge" style="background: ${biasColorMap[o.dominant_bias] || '#6b7280'}">${o.dominant_bias}</span>
+              <span class="badge badge-outline" style="border-color: ${biasColorMap[o.secondary_bias] || '#6b7280'}; color: ${biasColorMap[o.secondary_bias] || '#6b7280'}">${o.secondary_bias}</span>
+            </div>
+            <span style="font-size: 13px; color: #94a3b8; font-weight: 600;">${Math.round(o.confidence * 100)}% confidence</span>
           </div>
         </div>
       `).join("")}
@@ -271,25 +628,36 @@ export function exportToPDF(options: {
   </div>
   ` : ""}
 
-  ${pakistan.length > 0 ? `
-  <!-- Pakistan Bias Distribution -->
+  ${countryData.length > 0 ? `
+  <!-- ${countryName} Bias Distribution -->
   <div class="section">
-    <h2>🇵🇰 Pakistan Media Bias Distribution</h2>
-    <div class="card">
-      ${biasDistribution(pakistan)}
+    <div class="section-header">
+      <h2>${country?.flag || '🏳️'} ${countryName} Media Bias Distribution</h2>
+      <span class="section-badge" style="background: linear-gradient(135deg, #10b981, #059669);">${countryData.length} Outlets</span>
     </div>
-    <div class="card" style="margin-top: 12px;">
-      <h3>Outlet Breakdown</h3>
-      ${pakistan.map((o: any) => `
+    ${countryDescription ? `<p style="color: #94a3b8; margin-bottom: 20px; font-size: 15px; font-style: italic;">${countryDescription}</p>` : ''}
+    <div class="card">
+      ${biasDistribution(countryData, '#10b981')}
+    </div>
+    <div class="card" style="margin-top: 20px;">
+      <h3>📊 Outlet Breakdown</h3>
+      ${countryData.map((o: any) => `
         <div class="outlet-row">
-          <div>
+          <div style="flex: 1; min-width: 0;">
             <div class="outlet-name">${o.outlet}</div>
             <div class="outlet-desc">${o.analysis}</div>
+            ${o.key_themes?.length > 0 ? `
+              <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px;">
+                ${o.key_themes.slice(0, 3).map((t: string) => `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 10px; padding: 3px 8px;">${t}</span>`).join('')}
+              </div>
+            ` : ''}
           </div>
-          <div style="text-align: right; flex-shrink: 0;">
-            <span class="badge" style="background: ${biasColorMap[o.dominant_bias] || "#6b7280"}">${o.dominant_bias}</span>
-            <span class="badge badge-outline" style="border-color: ${biasColorMap[o.secondary_bias] || "#6b7280"}; color: ${biasColorMap[o.secondary_bias] || "#6b7280"}">${o.secondary_bias}</span>
-            <span style="font-size: 11px; color: #94a3b8;">${Math.round(o.confidence * 100)}%</span>
+          <div style="text-align: right; flex-shrink: 0; margin-left: 20px;">
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+              <span class="badge" style="background: ${biasColorMap[o.dominant_bias] || '#6b7280'}">${o.dominant_bias}</span>
+              <span class="badge badge-outline" style="border-color: ${biasColorMap[o.secondary_bias] || '#6b7280'}; color: ${biasColorMap[o.secondary_bias] || '#6b7280'}">${o.secondary_bias}</span>
+            </div>
+            <span style="font-size: 13px; color: #94a3b8; font-weight: 600;">${Math.round(o.confidence * 100)}% confidence</span>
           </div>
         </div>
       `).join("")}
@@ -300,96 +668,114 @@ export function exportToPDF(options: {
   ${narrativeData?.narratives?.length > 0 ? `
   <!-- Detected Narratives -->
   <div class="section">
-    <h2>🔍 Detected Narratives</h2>
+    <div class="section-header">
+      <h2>🔍 Detected Narratives</h2>
+      <span class="section-badge" style="background: linear-gradient(135deg, #f59e0b, #d97706);">${narrativeData.narratives.length} Narratives</span>
+    </div>
     <div class="grid">
       ${narrativeData.narratives.map((n: any) => `
         <div class="narrative-card">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <h3>${n.title}</h3>
-            <span class="badge" style="background: ${n.intensity === "high" ? "#dc2626" : n.intensity === "medium" ? "#f59e0b" : "#6b7280"}">${n.intensity}</span>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+            <h3 style="margin: 0; flex: 1;">${n.title}</h3>
+            <span class="badge" style="background: ${n.intensity === "high" ? "linear-gradient(135deg, #dc2626, #b91c1c)" : n.intensity === "medium" ? "linear-gradient(135deg, #f59e0b, #d97706)" : "linear-gradient(135deg, #6b7280, #4b5563)"}; margin-left: 12px;">
+              ${n.intensity}
+            </span>
           </div>
-          <p>${n.description}</p>
-          <div class="narrative-meta">
+          <p style="margin-bottom: 20px; font-style: italic; color: #94a3b8;">"${n.description}"</p>
+          <div class="narrative-meta" style="background: rgba(15, 23, 42, 0.5); padding: 16px; border-radius: 12px;">
             <div>
-              <span class="label">Promoted by:</span>
-              <span class="badge" style="background: ${biasColorMap[normalizeBias(n.promoted_by)] || "#6b7280"}">${normalizeBias(n.promoted_by)}</span>
+              <span class="label">Promoted by</span>
+              <span class="badge" style="background: ${biasColorMap[normalizeBias(n.promoted_by)] || '#6b7280'}">${normalizeBias(n.promoted_by)}</span>
             </div>
             <div>
-              <span class="label">Opposed by:</span>
-              <span class="badge badge-outline" style="border-color: ${biasColorMap[normalizeBias(n.opposed_by)] || "#6b7280"}; color: ${biasColorMap[normalizeBias(n.opposed_by)] || "#94a3b8"}">${normalizeBias(n.opposed_by)}</span>
+              <span class="label">Opposed by</span>
+              <span class="badge badge-outline" style="border-color: ${biasColorMap[normalizeBias(n.opposed_by)] || '#6b7280'}; color: ${biasColorMap[normalizeBias(n.opposed_by)] || '#94a3b8'}">${normalizeBias(n.opposed_by)}</span>
             </div>
           </div>
         </div>
       `).join("")}
     </div>
     ${narrativeData.trending_topics?.length > 0 ? `
-      <div class="card" style="margin-top: 12px;">
+      <div class="card" style="margin-top: 20px;">
         <h3>📈 Trending Topics</h3>
-        <p>${narrativeData.trending_topics.join(" • ")}</p>
-        ${narrativeData.bias_tensions ? `<p style="margin-top: 8px;">${narrativeData.bias_tensions}</p>` : ""}
+        <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px;">
+          ${narrativeData.trending_topics.map((t: string) => `<span class="badge" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">${t}</span>`).join("")}
+        </div>
+        ${narrativeData.bias_tensions ? `
+          <div style="margin-top: 20px; padding: 16px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.1)); border-radius: 12px; border-left: 4px solid #8b5cf6;">
+            <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #a78bfa; margin-bottom: 8px; font-weight: 600;">Bias Tensions</p>
+            <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">${narrativeData.bias_tensions}</p>
+          </div>
+        ` : ""}
       </div>
     ` : ""}
   </div>
   ` : ""}
 
-  ${narrative ? `
-  <div class="section">
-    <h2>🗂️ Narrative Snapshot (LocalDB)</h2>
-    <div class="grid">
-      ${narrative.narratives.map((n) => `
-        <div class="narrative-card">
-          <h3>${n.title}</h3>
-          <p>${n.description}</p>
-          <div class="narrative-meta">
-            <div>
-              <span class="label">Promoted:</span>
-              <span class="badge" style="background: ${biasColorMap[n.promotedBy] || "#6b7280"}">${n.promotedBy}</span>
-            </div>
-            <div>
-              <span class="label">Opposed:</span>
-              <span class="badge badge-outline" style="border-color: ${biasColorMap[n.opposedBy] || "#6b7280"}; color: ${biasColorMap[n.opposedBy] || "#94a3b8"}">${n.opposedBy}</span>
-            </div>
-          </div>
-        </div>
-      `).join("")}
-    </div>
-  </div>
-  ` : ""}
-
   ${analyses.length > 0 ? `
   <div class="section">
-    <h2>🧠 Analysis Results (${analyses.length})</h2>
+    <div class="section-header">
+      <h2>🧠 Analysis Results</h2>
+      <span class="section-badge" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">${analyses.length} Analyses</span>
+    </div>
     ${analyses.map((a) => {
-      // Find related article
       const relatedArticle = a.articleId ? articles.find(art => art.id === a.articleId) : null;
       return `
       <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <h3>${a.inputText.substring(0, 100)}${a.inputText.length > 100 ? "..." : ""}</h3>
-          <div>
-            <span class="badge" style="background: ${biasColorMap[a.dominantBias] || "#6b7280"}">${a.dominantBias}</span>
-            <span class="badge badge-outline" style="border-color: ${biasColorMap[a.secondaryBias] || "#6b7280"}; color: ${biasColorMap[a.secondaryBias] || "#6b7280"}">${a.secondaryBias}</span>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+          <h3 style="flex: 1; min-width: 250px; margin: 0; word-break: break-word;">${a.inputText.substring(0, 100)}${a.inputText.length > 100 ? "..." : ""}</h3>
+          <div style="flex-shrink: 0; display: flex; gap: 8px;">
+            <span class="badge" style="background: ${biasColorMap[a.dominantBias] || '#6b7280'}">${a.dominantBias}</span>
+            <span class="badge badge-outline" style="border-color: ${biasColorMap[a.secondaryBias] || '#6b7280'}; color: ${biasColorMap[a.secondaryBias] || '#6b7280'}">${a.secondaryBias}</span>
           </div>
         </div>
         <p>${a.analysis}</p>
-        <div class="meta">Confidence: ${Math.round(a.confidence * 100)}% • Tone: ${a.narrativeTone} • Themes: ${a.keyThemes.join(", ")}</div>
+        <div style="margin-top: 12px; padding: 12px; background: rgba(15, 23, 42, 0.5); border-radius: 10px; font-size: 13px; color: #94a3b8;">
+          <span style="font-weight: 600; color: #60a5fa;">Confidence:</span> ${Math.round(a.confidence * 100)}% • 
+          <span style="font-weight: 600; color: #60a5fa;">Tone:</span> ${a.narrativeTone} • 
+          <span style="font-weight: 600; color: #60a5fa;">Themes:</span> ${a.keyThemes.join(", ")}
+        </div>
         ${a.cognitiveBiases.length > 0 ? `
           <div class="bias-list">
-            <p style="color: #fbbf24; font-size: 12px; font-weight: 600; margin-top: 10px;">⚠️ Cognitive Biases:</p>
-            ${a.cognitiveBiases.map((b) => `<div class="bias-item">• ${b.name} <span class="badge" style="background: ${b.severity === "high" ? "#dc2626" : b.severity === "medium" ? "#f59e0b" : "#6b7280"}; font-size: 10px;">${b.severity}</span> — ${b.description}</div>`).join("")}
+            <p style="color: #fbbf24; font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px;">⚠️</span> Cognitive Biases (${a.cognitiveBiases.length})
+            </p>
+            ${a.cognitiveBiases.map((b) => `
+              <div class="bias-item">
+                <div style="flex: 1;">
+                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                    <strong style="color: #fbbf24;">${b.name}</strong>
+                    ${severityBadge(b.severity)}
+                  </div>
+                  <p style="font-size: 13px; color: #94a3b8; margin: 0;">${b.description}</p>
+                </div>
+              </div>
+            `).join("")}
           </div>
         ` : ""}
         ${a.logicalFallacies.length > 0 ? `
           <div class="bias-list">
-            <p style="color: #f87171; font-size: 12px; font-weight: 600; margin-top: 10px;">🚨 Logical Fallacies:</p>
-            ${a.logicalFallacies.map((f) => `<div class="bias-item">• ${f.name} <span class="badge" style="background: ${f.severity === "high" ? "#dc2626" : f.severity === "medium" ? "#f59e0b" : "#6b7280"}; font-size: 10px;">${f.severity}</span> — ${f.description}</div>`).join("")}
+            <p style="color: #f87171; font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px;">🚨</span> Logical Fallacies (${a.logicalFallacies.length})
+            </p>
+            ${a.logicalFallacies.map((f) => `
+              <div class="bias-item">
+                <div style="flex: 1;">
+                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                    <strong style="color: #f87171;">${f.name}</strong>
+                    ${severityBadge(f.severity)}
+                  </div>
+                  <p style="font-size: 13px; color: #94a3b8; margin: 0;">${f.description}</p>
+                </div>
+              </div>
+            `).join("")}
           </div>
         ` : ""}
         ${relatedArticle ? `
-          <div class="article-analysis" style="border-color: ${biasColorMap[a.dominantBias] || "#6b7280"};">
-            <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">📰 Related Article</div>
-            <div style="font-size: 13px; color: #e2e8f0; font-weight: 500;">${relatedArticle.title}</div>
-            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">${relatedArticle.source} • ${new Date(relatedArticle.publishedAt).toLocaleDateString()}</div>
+          <div class="article-analysis" style="border-color: ${biasColorMap[a.dominantBias] || '#6b7280'};">
+            <div style="font-size: 11px; color: #64748b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">📰 Related Article</div>
+            <div style="font-size: 16px; color: #e2e8f0; font-weight: 600; margin-bottom: 4px;">${relatedArticle.title}</div>
+            <div style="font-size: 13px; color: #64748b;">${relatedArticle.source} • ${new Date(relatedArticle.publishedAt).toLocaleDateString()}</div>
           </div>
         ` : ""}
       </div>`;
@@ -397,33 +783,17 @@ export function exportToPDF(options: {
   </div>
   ` : ""}
 
-  ${articles.length > 0 ? `
-  <div class="section">
-    <h2>📰 News Articles (${articles.length})</h2>
-    ${articles.slice(0, 30).map((a) => {
-      const matchedAnalysis = analysisMap.get(a.id);
-      return `
-      <div class="card">
-        <h3>${a.title}</h3>
-        <p>${a.description || ""}</p>
-        <div class="meta">${a.source} • ${new Date(a.publishedAt).toLocaleString()} • ${a.country.toUpperCase()} • Fetched via: ${a.fetchedVia}</div>
-        ${matchedAnalysis ? `
-          <div class="article-analysis" style="border-color: ${biasColorMap[matchedAnalysis.dominantBias] || "#6b7280"};">
-            <div style="display: flex; gap: 6px; margin-bottom: 6px;">
-              <span class="badge" style="background: ${biasColorMap[matchedAnalysis.dominantBias] || "#6b7280"}">${matchedAnalysis.dominantBias}</span>
-              <span style="font-size: 11px; color: #94a3b8;">Confidence: ${Math.round(matchedAnalysis.confidence * 100)}%</span>
-            </div>
-            <p style="font-size: 12px;">${matchedAnalysis.analysis.substring(0, 200)}${matchedAnalysis.analysis.length > 200 ? "..." : ""}</p>
-          </div>
-        ` : ""}
-      </div>`;
-    }).join("")}
-  </div>
-  ` : ""}
-
+  <!-- Footer -->
   <div class="footer">
-    <p>⚖️ BiasMapper • Fair and Balanced Analysis Across Perspectives</p>
-    <p style="margin-top: 4px;">This report provides directional classification as a guide, not absolute truth. Always review in context.</p>
+    <p class="footer-logo">⚖️ BiasMapper</p>
+    <p style="margin-bottom: 8px;">Fair and Balanced Analysis Across Perspectives</p>
+    <p style="font-size: 12px; color: #475569;">
+      This report provides directional classification as a guide, not absolute truth. 
+      Always review results in their full sociological context.
+    </p>
+    <p style="margin-top: 16px; font-size: 11px; color: #475569;">
+      Generated by BiasMapper v2.0 • ${new Date().toLocaleString()}
+    </p>
   </div>
 </body>
 </html>`;
@@ -433,7 +803,7 @@ export function exportToPDF(options: {
   if (printWindow) {
     printWindow.document.write(html);
     printWindow.document.close();
-    setTimeout(() => printWindow.print(), 600);
+    setTimeout(() => printWindow.print(), 800);
   }
 }
 

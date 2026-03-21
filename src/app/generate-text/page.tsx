@@ -16,6 +16,12 @@ import { Zap, RefreshCw, AlertTriangle, FileDown, Copy, Check } from "lucide-rea
 import { isAPIConfigured } from "@/lib/api-config";
 import { generateWithBias } from "@/lib/api-service";
 import { ThinkingProcess } from "@/components/analyze/ThinkingProcess";
+import { 
+  BIAS_SELECT_OPTIONS, 
+  FORMAT_OPTIONS, 
+  PSYCHOLOGICAL_INDICATORS, 
+  SOCIOLOGICAL_INDICATORS 
+} from "@/lib/bias-constants";
 
 const biasColors: Record<string, string> = {
   "L++": "#dc2626", "L+": "#f87171", L: "#fca5a5",
@@ -24,46 +30,6 @@ const biasColors: Record<string, string> = {
   "T++": "#7c3aed", "T+": "#a78bfa", T: "#c4b5fd",
   B: "#fbbf24", "B+": "#f59e0b", "B++": "#d97706",
 };
-
-const biasOptions = [
-  { value: "L++", label: "L++ — Far Left" },
-  { value: "L+", label: "L+ — Progressive" },
-  { value: "L", label: "L — Left-leaning" },
-  { value: "C", label: "C — Center" },
-  { value: "R", label: "R — Right-leaning" },
-  { value: "R+", label: "R+ — Conservative" },
-  { value: "R++", label: "R++ — Far Right" },
-  { value: "T+", label: "T+ — Mainstream" },
-  { value: "T++", label: "T++ — Establishment" },
-  { value: "B+", label: "B+ — Grassroots" },
-  { value: "B++", label: "B++ — Radical Dissent" },
-];
-
-const formatOptions = [
-  { value: "paragraph", label: "Paragraph" },
-  { value: "article", label: "Article" },
-  { value: "tweet", label: "Tweet / Short Post" },
-  { value: "opinion piece", label: "Opinion Piece" },
-  { value: "news headline", label: "News Headline" },
-];
-
-const psyOptions = [
-  "Emotional Framing",
-  "Fear-mongering",
-  "Appeal to Authority",
-  "In-group Favoritism",
-  "Scapegoating",
-  "Urgency / Scarcity",
-];
-
-const socioOptions = [
-  "Power Dynamics",
-  "Marginalization",
-  "Institutional Trust",
-  "Group Identity",
-  "Social Hierarchy",
-  "Cultural Superiority",
-];
 
 export default function GenerateTextPage() {
   const [topic, setTopic] = useState("");
@@ -160,15 +126,15 @@ export default function GenerateTextPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 font-sans">
-      <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-6 sm:space-y-8">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
-            <Zap className="h-6 w-6 text-white" />
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+            <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Perspective Weaver</h1>
-            <p className="text-slate-400 text-sm">
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Perspective Weaver</h1>
+            <p className="text-slate-400 text-xs sm:text-sm">
               Generate content from specific ideological lenses to understand framing
             </p>
           </div>
@@ -180,40 +146,40 @@ export default function GenerateTextPage() {
         {/* Input */}
         <Card className="bg-slate-900/60 border-slate-800 backdrop-blur-md">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Zap className="h-5 w-5 text-purple-400" />
+            <CardTitle className="text-white flex items-center gap-2 text-base sm:text-lg">
+              <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
               Framing Parameters
             </CardTitle>
-            <CardDescription className="text-slate-500 text-xs">
+            <CardDescription className="text-slate-500 text-xs sm:text-sm">
               Define the topic and select the target ideological alignment
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 sm:space-y-6">
             <div className="space-y-2">
               <Label htmlFor="generateTopicInput" className="text-slate-400 text-xs font-bold uppercase tracking-widest">
                 Central Topic
               </Label>
               <Input
                 id="generateTopicInput"
-                className="h-12 bg-slate-950/50 border-slate-800 text-slate-200 placeholder-slate-700 focus:ring-purple-500/50 rounded-xl"
+                className="h-10 sm:h-12 bg-slate-950/50 border-slate-800 text-slate-200 placeholder-slate-700 focus:ring-purple-500/50 rounded-xl text-sm"
                 placeholder="e.g., The impact of decentralized finance on traditional banking"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
               />
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               <div className="space-y-2">
                 <Label htmlFor="biasSelect" className="text-slate-400 text-xs font-bold uppercase tracking-widest">
                   Ideological Lens
                 </Label>
                 <select
                   id="biasSelect"
-                  className="w-full h-11 px-3 rounded-xl bg-slate-950/50 border border-slate-800 text-slate-200 text-sm focus:ring-purple-500/50"
+                  className="w-full h-10 sm:h-11 px-3 rounded-xl bg-slate-950/50 border border-slate-800 text-slate-200 text-xs sm:text-sm focus:ring-purple-500/50"
                   value={bias}
                   onChange={(e) => setBias(e.target.value)}
                 >
-                  {biasOptions.map((opt) => (
+                  {BIAS_SELECT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
@@ -227,11 +193,11 @@ export default function GenerateTextPage() {
                 </Label>
                 <select
                   id="formatSelect"
-                  className="w-full h-11 px-3 rounded-xl bg-slate-950/50 border border-slate-800 text-slate-200 text-sm focus:ring-purple-500/50"
+                  className="w-full h-10 sm:h-11 px-3 rounded-xl bg-slate-950/50 border border-slate-800 text-slate-200 text-xs sm:text-sm focus:ring-purple-500/50"
                   value={format}
                   onChange={(e) => setFormat(e.target.value)}
                 >
-                  {formatOptions.map((opt) => (
+                  {FORMAT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
@@ -243,12 +209,12 @@ export default function GenerateTextPage() {
                 <Label className="text-slate-400 text-xs font-bold uppercase tracking-widest">
                   Content Depth
                 </Label>
-                <div className="flex h-11 p-1 bg-slate-950/50 border border-slate-800 rounded-xl">
+                <div className="flex h-10 sm:h-11 p-1 bg-slate-950/50 border border-slate-800 rounded-xl">
                   {(["short", "medium", "long"] as const).map((amt) => (
                     <button
                       key={amt}
                       onClick={() => setAmount(amt)}
-                      className={`flex-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                      className={`flex-1 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all ${
                         amount === amt
                           ? "bg-purple-600 text-white shadow-sm"
                           : "text-slate-500 hover:text-slate-300"
@@ -261,17 +227,18 @@ export default function GenerateTextPage() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8 pt-2">
+            {/* Indicators Selection */}
+            <div className="grid md:grid-cols-2 gap-4 sm:gap-6 pt-2">
               <div className="space-y-3">
                 <Label className="text-slate-400 text-xs font-bold uppercase tracking-widest block">
                   Psychological Indicators
                 </Label>
-                <div className="flex flex-wrap gap-2">
-                  {psyOptions.map((opt) => (
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                  {PSYCHOLOGICAL_INDICATORS.slice(0, 12).map((opt) => (
                     <button
                       key={opt}
                       onClick={() => togglePsy(opt)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                      className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all border ${
                         selectedPsy.includes(opt)
                           ? "bg-purple-600/20 border-purple-500 text-purple-300"
                           : "bg-slate-950/30 border-slate-800 text-slate-500 hover:border-slate-700"
@@ -287,12 +254,12 @@ export default function GenerateTextPage() {
                 <Label className="text-slate-400 text-xs font-bold uppercase tracking-widest block">
                   Sociological Indicators
                 </Label>
-                <div className="flex flex-wrap gap-2">
-                  {socioOptions.map((opt) => (
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                  {SOCIOLOGICAL_INDICATORS.slice(0, 12).map((opt) => (
                     <button
                       key={opt}
                       onClick={() => toggleSocio(opt)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                      className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all border ${
                         selectedSocio.includes(opt)
                           ? "bg-indigo-600/20 border-indigo-500 text-indigo-300"
                           : "bg-slate-950/30 border-slate-800 text-slate-500 hover:border-slate-700"
@@ -308,10 +275,10 @@ export default function GenerateTextPage() {
             <Button
               onClick={handleGenerate}
               disabled={!topic.trim() || !isConfigured || generating}
-              className="w-full sm:w-auto bg-purple-600 hover:bg-purple-500 text-white font-bold h-11 px-10 shadow-lg shadow-purple-500/20"
+              className="w-full sm:w-auto bg-purple-600 hover:bg-purple-500 text-white font-bold h-10 sm:h-11 px-8 sm:px-10 shadow-lg shadow-purple-500/20 text-sm"
             >
               {generating ? (
-                <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Synthesizing Perspective...</>
+                <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Synthesizing...</>
               ) : (
                 <><Check className="h-4 w-4 mr-2" />Generate Content</>
               )}
@@ -323,12 +290,12 @@ export default function GenerateTextPage() {
         {generatedText && (
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <CardTitle className="text-white">Generated Content</CardTitle>
+                  <CardTitle className="text-white text-base sm:text-lg">Generated Content</CardTitle>
                   <Badge
                     style={{ backgroundColor: biasColors[bias] || "#6b7280" }}
-                    className="text-white"
+                    className="text-white text-xs"
                   >
                     {bias}
                   </Badge>
@@ -337,7 +304,7 @@ export default function GenerateTextPage() {
                   onClick={handleCopy}
                   size="sm"
                   variant="outline"
-                  className="border-slate-600 text-slate-300"
+                  className="border-slate-600 text-slate-300 text-xs"
                 >
                   {copied ? (
                     <><Check className="h-3.5 w-3.5 mr-1.5" />Copied</>
@@ -348,8 +315,8 @@ export default function GenerateTextPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="bg-slate-700/50 p-5 rounded-lg">
-                <p className="text-white whitespace-pre-wrap leading-relaxed">
+              <div className="bg-slate-700/50 p-4 sm:p-5 rounded-xl">
+                <p className="text-white whitespace-pre-wrap leading-relaxed text-sm sm:text-base">
                   {generatedText}
                 </p>
               </div>
@@ -361,8 +328,8 @@ export default function GenerateTextPage() {
         {!isConfigured && (
           <Card className="bg-amber-900/20 border-amber-700">
             <CardContent className="pt-6 flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
-              <p className="text-slate-300 text-sm">
+              <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500 flex-shrink-0" />
+              <p className="text-slate-300 text-xs sm:text-sm">
                 No AI service configured. Please set up your API in{" "}
                 <a href="/settings" className="text-blue-400 hover:underline">Settings</a>.
               </p>
