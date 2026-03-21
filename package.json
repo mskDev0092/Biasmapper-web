@@ -5,7 +5,9 @@
   "description": "AI-powered media bias analysis platform for detecting ideological, societal, and cognitive biases",
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
-    "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
+    "build": "next build",
+    "export": "next build",
+    "build:export": "next build",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
     "db:push": "prisma db push",

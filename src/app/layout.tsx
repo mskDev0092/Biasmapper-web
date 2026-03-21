@@ -49,15 +49,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+    <html lang="en" className="scroll-smooth dark" suppressHydrationWarning>
       <head />
-      <body
-        className={`${inter.className} bg-white text-slate-900 antialiased`}
-      >
+      <body className={`${inter.className} antialiased`}>
         <Navigation />
-        <main className="min-h-screen">
-          {children}
-        </main>
+        <main className="min-h-screen">{children}</main>
         <Toaster />
       </body>
     </html>

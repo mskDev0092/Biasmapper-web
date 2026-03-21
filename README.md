@@ -9,7 +9,7 @@
 
 **AI-Powered Media Bias Analysis Platform**
 
-*Uncover hidden bias in any text — Detect ideological, societal, and cognitive biases using advanced NLP*
+_Uncover hidden bias in any text — Detect ideological, societal, and cognitive biases using advanced NLP_
 
 [🚀 Quick Start](#-quick-start) · [📖 Documentation](#-documentation) · [🎯 Features](#-features) · [⚙️ Configuration](#️-configuration)
 
@@ -34,14 +34,14 @@ BiasMapper is a sophisticated web application designed to help journalists, rese
 
 ### Core Analysis Capabilities
 
-| Feature | Description |
-|---------|-------------|
+| Feature                                 | Description                                                      |
+| --------------------------------------- | ---------------------------------------------------------------- |
 | 🔍 **Multi-Dimensional Bias Detection** | Analyze text across ideological and societal axes simultaneously |
-| 🌍 **Multi-Country Support** | 25+ countries with regional news outlet profiles |
-| 🧠 **Cognitive Bias Analysis** | Detect 70+ cognitive biases with severity ratings |
-| 📊 **Logical Fallacy Detection** | Identify 70+ reasoning errors in arguments |
-| 📈 **Narrative Mapping** | Track how stories are framed across different media perspectives |
-| 📰 **Multi-Source Analysis** | Compare coverage across international and national outlets |
+| 🌍 **Multi-Country Support**            | 25+ countries with regional news outlet profiles                 |
+| 🧠 **Cognitive Bias Analysis**          | Detect 70+ cognitive biases with severity ratings                |
+| 📊 **Logical Fallacy Detection**        | Identify 70+ reasoning errors in arguments                       |
+| 📈 **Narrative Mapping**                | Track how stories are framed across different media perspectives |
+| 📰 **Multi-Source Analysis**            | Compare coverage across international and national outlets       |
 
 ### Technical Features
 
@@ -95,64 +95,68 @@ BiasMapper uses a dual-axis bias classification system:
 
 #### Ideological Axis (Left-Right)
 
-| Code | Label | Description |
-|------|-------|-------------|
-| L++ | Far Left | Radical progressive perspectives advocating fundamental systemic change |
-| L+ | Progressive | Center-left viewpoints supporting social reform and progressive policies |
-| L | Left-leaning | Mild progressive tendencies with moderate economic views |
-| C | Center | Neutral or balanced perspectives presenting multiple viewpoints |
-| R | Right-leaning | Mild conservative tendencies with moderate economic views |
-| R+ | Conservative | Center-right viewpoints supporting traditional values and free-market policies |
-| R++ | Far Right | Radical conservative perspectives often nationalist in nature |
+| Code | Label         | Description                                                                    |
+| ---- | ------------- | ------------------------------------------------------------------------------ |
+| L++  | Far Left      | Radical progressive perspectives advocating fundamental systemic change        |
+| L+   | Progressive   | Center-left viewpoints supporting social reform and progressive policies       |
+| L    | Left-leaning  | Mild progressive tendencies with moderate economic views                       |
+| C    | Center        | Neutral or balanced perspectives presenting multiple viewpoints                |
+| R    | Right-leaning | Mild conservative tendencies with moderate economic views                      |
+| R+   | Conservative  | Center-right viewpoints supporting traditional values and free-market policies |
+| R++  | Far Right     | Radical conservative perspectives often nationalist in nature                  |
 
 #### Societal Axis (Establishment-Oppositional)
 
-| Code | Label | Description |
-|------|-------|-------------|
-| T++ | Est. Extreme | Complete alignment with institutional narratives |
-| T+ | Mainstream | General trust in establishment institutions |
-| T | Establishment | Moderate pro-institution stance with some skepticism |
-| B | Oppositional | Skeptical of institutions and official narratives |
-| B+ | Grassroots | Strong bottom-up perspective, anti-establishment orientation |
-| B++ | Radical Dissent | Strongly anti-establishment, advocating fundamental change |
+| Code | Label           | Description                                                  |
+| ---- | --------------- | ------------------------------------------------------------ |
+| T++  | Est. Extreme    | Complete alignment with institutional narratives             |
+| T+   | Mainstream      | General trust in establishment institutions                  |
+| T    | Establishment   | Moderate pro-institution stance with some skepticism         |
+| B    | Oppositional    | Skeptical of institutions and official narratives            |
+| B+   | Grassroots      | Strong bottom-up perspective, anti-establishment orientation |
+| B++  | Radical Dissent | Strongly anti-establishment, advocating fundamental change   |
 
 ### Supported Countries
 
 BiasMapper supports 25+ countries with regional news outlet profiles:
 
-| Region | Countries |
-|--------|-----------|
-| **North America** | 🇺🇸 United States, 🇨🇦 Canada, 🇲🇽 Mexico |
-| **Europe** | 🇬🇧 United Kingdom, 🇩🇪 Germany, 🇫🇷 France, 🇮🇹 Italy, 🇪🇸 Spain, 🇹🇷 Turkey |
-| **South Asia** | 🇵🇰 Pakistan, 🇮🇳 India |
-| **East Asia** | 🇨🇳 China, 🇯🇵 Japan, 🇰🇷 South Korea |
-| **Middle East** | 🇦🇪 UAE/Gulf, 🇮🇷 Iran, 🇮🇱 Israel, 🇪🇬 Egypt |
-| **South America** | 🇧🇷 Brazil |
-| **Africa** | 🇿🇦 South Africa, 🇳🇬 Nigeria |
-| **Southeast Asia** | 🇮🇩 Indonesia |
-| **Oceania** | 🇦🇺 Australia |
-| **Eastern Europe** | 🇷🇺 Russia |
+| Region             | Countries                                                               |
+| ------------------ | ----------------------------------------------------------------------- |
+| **North America**  | 🇺🇸 United States, 🇨🇦 Canada, 🇲🇽 Mexico                                  |
+| **Europe**         | 🇬🇧 United Kingdom, 🇩🇪 Germany, 🇫🇷 France, 🇮🇹 Italy, 🇪🇸 Spain, 🇹🇷 Turkey |
+| **South Asia**     | 🇵🇰 Pakistan, 🇮🇳 India                                                   |
+| **East Asia**      | 🇨🇳 China, 🇯🇵 Japan, 🇰🇷 South Korea                                      |
+| **Middle East**    | 🇦🇪 UAE/Gulf, 🇮🇷 Iran, 🇪🇬 Egypt                                          |
+| **South America**  | 🇧🇷 Brazil                                                               |
+| **Africa**         | 🇿🇦 South Africa, 🇳🇬 Nigeria                                             |
+| **Southeast Asia** | 🇮🇩 Indonesia                                                            |
+| **Oceania**        | 🇦🇺 Australia                                                            |
+| **Eastern Europe** | 🇷🇺 Russia                                                               |
 
 ### Indicator Categories
 
 #### Cognitive Biases (70+)
+
 - Decision-making: Anchoring, Availability Heuristic, Confirmation Bias, Framing Effect
 - Social: In-group Bias, Halo Effect, Attribution Bias
 - Memory: Misinformation Effect, False Memory, Recency Bias
 - Probability: Gambler's Fallacy, Base Rate Fallacy, Survivorship Bias
 
 #### Logical Fallacies (70+)
+
 - Relevance: Ad Hominem, Appeal to Authority, Straw Man, Red Herring
 - Causal: Post Hoc, Slippery Slope, False Cause
 - Ambiguity: Equivocation, Quoting Out of Context
 - Presumption: False Dilemma, Begging the Question, Hasty Generalization
 
 #### Psychological Indicators
+
 - Emotional Manipulation: Fear-mongering, Outrage Manufacturing, Victim Narratives
 - Propaganda Techniques: Bandwagon, Card Stacking, Gaslighting, DARVO
 - Influence: Social Proof, Scarcity Tactics, Authority Positioning
 
 #### Sociological Indicators
+
 - Power Dynamics: Elite Narratives, Class Conflict Framing, Privilege Discourse
 - Group Identity: National, Ethnic, Religious, Political Identity
 - Social Stratification: Urban vs Rural Divide, Educational Stratification
@@ -179,12 +183,12 @@ OPENAI_API_BASE="http://localhost:1234/v1"
 
 BiasMapper works with any OpenAI-compatible API:
 
-| Provider | Endpoint | Notes |
-|----------|----------|-------|
-| OpenAI | `https://api.openai.com/v1` | Requires API key |
-| LM-Studio | `http://localhost:1234/v1` | Free, runs locally |
-| Ollama | `http://localhost:11434/v1` | Free, runs locally |
-| Azure OpenAI | `https://your-resource.openai.azure.com/openai/deployments/your-deployment` | Requires API key |
+| Provider     | Endpoint                                                                    | Notes              |
+| ------------ | --------------------------------------------------------------------------- | ------------------ |
+| OpenAI       | `https://api.openai.com/v1`                                                 | Requires API key   |
+| LM-Studio    | `http://localhost:1234/v1`                                                  | Free, runs locally |
+| Ollama       | `http://localhost:11434/v1`                                                 | Free, runs locally |
+| Azure OpenAI | `https://your-resource.openai.azure.com/openai/deployments/your-deployment` | Requires API key   |
 
 ### Database
 
@@ -258,6 +262,25 @@ bun run db:reset     # Reset database
 bun run lint         # Run ESLint
 ```
 
+## 📦 Static Export (SSG) for GitHub Pages
+
+This project can be exported as a static site suitable for GitHub Pages using Next's `next export`.
+
+- Build and export to the `out/` folder:
+
+```bash
+# From project root
+npm run export
+# or
+npm run build:export
+```
+
+- The `out/` directory can be pushed to the `gh-pages` branch or uploaded to GitHub Pages.
+
+- If you're deploying under a repository subpath (username.github.io/repo), set `assetPrefix` and `basePath` in `next.config.js` accordingly before exporting, or host the `out/` directory under that path.
+
+Note: The app uses only client-side features and local detection; server API routes were removed to ensure a fully static export.
+
 ### Tech Stack
 
 - **Framework**: Next.js 16 with App Router
@@ -276,6 +299,7 @@ bun run lint         # Run ESLint
 ### PDF Export
 
 Generates a professionally formatted HTML report with:
+
 - Executive summary with key statistics
 - Bias distribution visualizations
 - Outlet-by-outlet analysis
@@ -285,6 +309,7 @@ Generates a professionally formatted HTML report with:
 ### JSON Export
 
 Complete data export including:
+
 - All news articles
 - All analysis results
 - Narrative snapshots
@@ -294,6 +319,7 @@ Complete data export including:
 ### CSV Export
 
 Tabular export for spreadsheet analysis:
+
 - Articles CSV
 - Analyses CSV
 
