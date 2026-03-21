@@ -170,10 +170,26 @@ export interface BiasAnalysis {
   analysis: string;
   key_themes: string[];
   narrative_tone: string;
-  cognitive_biases: Array<{ name: string; description: string; severity: "low" | "medium" | "high" }>;
-  logical_fallacies: Array<{ name: string; description: string; severity: "low" | "medium" | "high" }>;
-  psychological_indicators: Array<{ name: string; description: string; intensity: "low" | "medium" | "high" }>;
-  sociological_indicators: Array<{ name: string; description: string; impact: "low" | "medium" | "high" }>;
+  cognitive_biases: Array<{
+    name: string;
+    description: string;
+    severity: "low" | "medium" | "high";
+  }>;
+  logical_fallacies: Array<{
+    name: string;
+    description: string;
+    severity: "low" | "medium" | "high";
+  }>;
+  psychological_indicators: Array<{
+    name: string;
+    description: string;
+    intensity: "low" | "medium" | "high";
+  }>;
+  sociological_indicators: Array<{
+    name: string;
+    description: string;
+    impact: "low" | "medium" | "high";
+  }>;
   premises: string[];
   conclusions: string[];
 }
@@ -249,14 +265,30 @@ JSON STRUCTURE:
             secondary_bias: parsed.secondary_bias,
             confidence: Math.min(1, Math.max(0, parsed.confidence)),
             analysis: parsed.analysis || "",
-            key_themes: Array.isArray(parsed.key_themes) ? parsed.key_themes : [],
+            key_themes: Array.isArray(parsed.key_themes)
+              ? parsed.key_themes
+              : [],
             narrative_tone: parsed.narrative_tone || "",
-            cognitive_biases: Array.isArray(parsed.cognitive_biases) ? parsed.cognitive_biases : [],
-            logical_fallacies: Array.isArray(parsed.logical_fallacies) ? parsed.logical_fallacies : [],
-            psychological_indicators: Array.isArray(parsed.psychological_indicators) ? parsed.psychological_indicators : [],
-            sociological_indicators: Array.isArray(parsed.sociological_indicators) ? parsed.sociological_indicators : [],
+            cognitive_biases: Array.isArray(parsed.cognitive_biases)
+              ? parsed.cognitive_biases
+              : [],
+            logical_fallacies: Array.isArray(parsed.logical_fallacies)
+              ? parsed.logical_fallacies
+              : [],
+            psychological_indicators: Array.isArray(
+              parsed.psychological_indicators,
+            )
+              ? parsed.psychological_indicators
+              : [],
+            sociological_indicators: Array.isArray(
+              parsed.sociological_indicators,
+            )
+              ? parsed.sociological_indicators
+              : [],
             premises: Array.isArray(parsed.premises) ? parsed.premises : [],
-            conclusions: Array.isArray(parsed.conclusions) ? parsed.conclusions : [],
+            conclusions: Array.isArray(parsed.conclusions)
+              ? parsed.conclusions
+              : [],
           };
         }
       }
@@ -277,7 +309,7 @@ export async function analyzeMultipleOutlets(
   outlets: Array<{ name: string; headlines: string[]; description?: string }>,
   onProgress?: (progress: number) => void,
 ): Promise<Array<{ outlet: string } & BiasAnalysis>> {
-  const results = [];
+  const results: Array<{ outlet: string } & BiasAnalysis> = [];
 
   for (let i = 0; i < outlets.length; i++) {
     const outlet = outlets[i];
@@ -538,13 +570,15 @@ export async function generateWithBias(
     long: "Provide an in-depth exploration (5+ paragraphs or ~600-800 words).",
   }[amount];
 
-  const psyPart = psyIndicators.length > 0 
-    ? `\nPsychological Framing to include: ${psyIndicators.join(", ")}`
-    : "";
-  
-  const socioPart = socioIndicators.length > 0
-    ? `\nSociological Framing to include: ${socioIndicators.join(", ")}`
-    : "";
+  const psyPart =
+    psyIndicators.length > 0
+      ? `\nPsychological Framing to include: ${psyIndicators.join(", ")}`
+      : "";
+
+  const socioPart =
+    socioIndicators.length > 0
+      ? `\nSociological Framing to include: ${socioIndicators.join(", ")}`
+      : "";
 
   const prompt = `Write a ${format} about "${topic}" from a ${targetBias} perspective.
   

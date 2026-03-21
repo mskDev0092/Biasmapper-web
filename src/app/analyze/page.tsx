@@ -361,7 +361,8 @@ export default function AnalyzePage() {
     if (storedData) {
       setLiveInternational(storedData.international || STATIC_INTERNATIONAL);
       setLiveCountry(
-        storedData.country || generateStaticCountryData(selectedCountryConfig!),
+        storedData.pakistan ||
+          generateStaticCountryData(selectedCountryConfig!),
       );
       setLiveNarratives(storedData.narratives || STATIC_NARRATIVES);
       setLastUpdateTime(getTimeSinceUpdate());
@@ -589,7 +590,7 @@ export default function AnalyzePage() {
       setAnalysisProgress(100);
       saveAnalysisData({
         international: intlAnalysis,
-        country: countryAnalysis,
+        pakistan: countryAnalysis,
         narratives: finalNarratives,
       });
       setLastUpdateTime(getTimeSinceUpdate());

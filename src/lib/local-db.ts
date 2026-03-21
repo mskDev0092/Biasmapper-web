@@ -35,7 +35,13 @@ export interface NewsArticle extends DBRecord {
   publishedAt: string; // ISO 8601
   country: string; // "us", "pk", "gb", etc.
   category: string; // "general", "technology", etc.
-  fetchedVia: "newsapi" | "gnews" | "currents" | "google-rss" | "lm-studio" | "manual";
+  fetchedVia:
+    | "newsapi"
+    | "gnews"
+    | "currents"
+    | "google-rss"
+    | "lm-studio"
+    | "manual";
   // LLM-appended fields (nullable before analysis)
   analysisId: string | null;
 }
@@ -142,7 +148,10 @@ const TABLES = {
 // ─── Helpers ────────────────────────────────────────────────────────
 
 function generateId(): string {
-  return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  return (
+    crypto.randomUUID?.() ??
+    `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+  );
 }
 
 function now(): string {
@@ -199,7 +208,9 @@ export const NewsArticlesDB = {
   },
 
   getBySource(source: string): NewsArticle[] {
-    return this.getAll().filter((a) => a.source.toLowerCase() === source.toLowerCase());
+    return this.getAll().filter(
+      (a) => a.source.toLowerCase() === source.toLowerCase(),
+    );
   },
 
   getByCountry(country: string): NewsArticle[] {
@@ -208,30 +219,48 @@ export const NewsArticlesDB = {
 
   getRecent(limit: number = 50): NewsArticle[] {
     return this.getAll()
-      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+      )
       .slice(0, limit);
   },
 
-  upsert(article: Omit<NewsArticle, "id" | "createdAt" | "updatedAt">): NewsArticle {
+  upsert(
+    article: Omit<NewsArticle, "id" | "createdAt" | "updatedAt">,
+  ): NewsArticle {
     const all = this.getAll();
     // Deduplicate by URL
     const existing = all.find((a) => a.url === article.url);
     if (existing) {
       const updated = { ...existing, ...article, updatedAt: now() };
-      writeTable(TABLES.newsArticles, all.map((a) => (a.id === existing.id ? updated : a)));
+      writeTable(
+        TABLES.newsArticles,
+        all.map((a) => (a.id === existing.id ? updated : a)),
+      );
       return updated;
     }
-    const record: NewsArticle = { ...article, id: generateId(), createdAt: now(), updatedAt: now() };
+    const record: NewsArticle = {
+      ...article,
+      id: generateId(),
+      createdAt: now(),
+      updatedAt: now(),
+    };
     all.push(record);
     // Keep max 500 articles to avoid localStorage bloat
     const trimmed = all
-      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+      )
       .slice(0, 500);
     writeTable(TABLES.newsArticles, trimmed);
     return record;
   },
 
-  bulkUpsert(articles: Omit<NewsArticle, "id" | "createdAt" | "updatedAt">[]): NewsArticle[] {
+  bulkUpsert(
+    articles: Omit<NewsArticle, "id" | "createdAt" | "updatedAt">[],
+  ): NewsArticle[] {
     return articles.map((a) => this.upsert(a));
   },
 
@@ -266,17 +295,30 @@ export const AnalysisResultsDB = {
 
   getRecent(limit: number = 20): AnalysisResult[] {
     return this.getAll()
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
       .slice(0, limit);
   },
 
-  create(result: Omit<AnalysisResult, "id" | "createdAt" | "updatedAt">): AnalysisResult {
+  create(
+    result: Omit<AnalysisResult, "id" | "createdAt" | "updatedAt">,
+  ): AnalysisResult {
     const all = this.getAll();
-    const record: AnalysisResult = { ...result, id: generateId(), createdAt: now(), updatedAt: now() };
+    const record: AnalysisResult = {
+      ...result,
+      id: generateId(),
+      createdAt: now(),
+      updatedAt: now(),
+    };
     all.push(record);
     // Keep max 200 results
     const trimmed = all
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
       .slice(0, 200);
     writeTable(TABLES.analysisResults, trimmed);
     return record;
@@ -286,7 +328,9 @@ export const AnalysisResultsDB = {
     const all = this.getAll();
     writeTable(
       TABLES.analysisResults,
-      all.map((a) => (a.id === id ? { ...a, ...partial, updatedAt: now() } : a))
+      all.map((a) =>
+        a.id === id ? { ...a, ...partial, updatedAt: now() } : a,
+      ),
     );
   },
 
@@ -304,16 +348,29 @@ export const NarrativeSnapshotsDB = {
 
   getLatest(): NarrativeSnapshot | undefined {
     const all = this.getAll();
-    return all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+    return all.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )[0];
   },
 
-  create(snapshot: Omit<NarrativeSnapshot, "id" | "createdAt" | "updatedAt">): NarrativeSnapshot {
+  create(
+    snapshot: Omit<NarrativeSnapshot, "id" | "createdAt" | "updatedAt">,
+  ): NarrativeSnapshot {
     const all = this.getAll();
-    const record: NarrativeSnapshot = { ...snapshot, id: generateId(), createdAt: now(), updatedAt: now() };
+    const record: NarrativeSnapshot = {
+      ...snapshot,
+      id: generateId(),
+      createdAt: now(),
+      updatedAt: now(),
+    };
     all.push(record);
     // Keep max 50 snapshots
     const trimmed = all
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
       .slice(0, 50);
     writeTable(TABLES.narrativeSnapshots, trimmed);
     return record;
@@ -336,18 +393,32 @@ export const OutletProfilesDB = {
   },
 
   getByName(name: string): OutletProfile | undefined {
-    return this.getAll().find((o) => o.name.toLowerCase() === name.toLowerCase());
+    return this.getAll().find(
+      (o) => o.name.toLowerCase() === name.toLowerCase(),
+    );
   },
 
-  upsert(profile: Omit<OutletProfile, "id" | "createdAt" | "updatedAt">): OutletProfile {
+  upsert(
+    profile: Omit<OutletProfile, "id" | "createdAt" | "updatedAt">,
+  ): OutletProfile {
     const all = this.getAll();
-    const existing = all.find((o) => o.name.toLowerCase() === profile.name.toLowerCase());
+    const existing = all.find(
+      (o) => o.name.toLowerCase() === profile.name.toLowerCase(),
+    );
     if (existing) {
       const updated = { ...existing, ...profile, updatedAt: now() };
-      writeTable(TABLES.outletProfiles, all.map((o) => (o.id === existing.id ? updated : o)));
+      writeTable(
+        TABLES.outletProfiles,
+        all.map((o) => (o.id === existing.id ? updated : o)),
+      );
       return updated;
     }
-    const record: OutletProfile = { ...profile, id: generateId(), createdAt: now(), updatedAt: now() };
+    const record: OutletProfile = {
+      ...profile,
+      id: generateId(),
+      createdAt: now(),
+      updatedAt: now(),
+    };
     all.push(record);
     writeTable(TABLES.outletProfiles, all);
     return record;
@@ -372,7 +443,10 @@ export const DEFAULT_NEWS_SETTINGS: NewsApiSettings = {
 
 export const NewsSettingsDB = {
   get(): NewsApiSettings {
-    return readSingleton<NewsApiSettings>(TABLES.newsApiSettings, DEFAULT_NEWS_SETTINGS);
+    return readSingleton<NewsApiSettings>(
+      TABLES.newsApiSettings,
+      DEFAULT_NEWS_SETTINGS,
+    );
   },
 
   update(partial: Partial<NewsApiSettings>): NewsApiSettings {
@@ -390,7 +464,7 @@ export const NewsSettingsDB = {
 // ─── Bulk Export / Import ───────────────────────────────────────────
 
 export interface LocalDBExport {
-  version: 1;
+  version: number;
   exportedAt: string;
   newsArticles: NewsArticle[];
   analysisResults: AnalysisResult[];
@@ -412,8 +486,15 @@ export function exportAllData(): LocalDBExport {
 }
 
 export function importAllData(data: LocalDBExport): void {
+  if (typeof data.version !== "number") {
+    throw new Error(`Invalid export version: ${String((data as any).version)}`);
+  }
   if (data.version !== 1) {
-    throw new Error(`Unsupported export version: ${data.version}`);
+    // Allow importing newer versions but warn the user. Import logic
+    // remains backward-compatible for core tables.
+    console.warn(
+      `Importing export version ${data.version}; some fields may be ignored.`,
+    );
   }
   writeTable(TABLES.newsArticles, data.newsArticles);
   writeTable(TABLES.analysisResults, data.analysisResults);
@@ -429,24 +510,24 @@ export function clearAllData(): void {
   NarrativeSnapshotsDB.clear();
   OutletProfilesDB.clear();
   NewsSettingsDB.reset();
-  
+
   // Clear persistent UI states
   if (typeof window !== "undefined") {
     const keysToRemove = [
-      "biasmapper_analysis_data", 
+      "biasmapper_analysis_data",
       "bias_mapper_api_config",
       "bm_app_state",
       "analyze_text_input",
-      "analyze_text_result", 
+      "analyze_text_result",
       "analyze_text_debias",
       "generate_text_input",
       "generate_text_result",
       "generate_text_settings",
       "lm_studio_status",
-      "last_news_sync_time"
+      "last_news_sync_time",
     ];
-    
-    keysToRemove.forEach(key => localStorage.removeItem(key));
+
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
     console.log("🔥 FULL SYSTEM RESET: All local data and UI states cleared");
   }
 }

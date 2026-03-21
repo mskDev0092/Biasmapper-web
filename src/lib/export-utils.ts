@@ -30,7 +30,7 @@ export interface FullExportData extends LocalDBExport {
     narratives: any;
   };
   exportedAt: string;
-  version: string;
+  version: number;
   selectedCountry?: string;
 }
 
@@ -39,10 +39,14 @@ export function exportToJSON(): void {
     ...exportAllData(),
     dashboardState: loadAnalysisData() || undefined,
     exportedAt: new Date().toISOString(),
-    version: "2.0.0",
+    version: 2,
   };
   const json = JSON.stringify(data, null, 2);
-  downloadFile(json, `biasmapper-export-${dateStamp()}.json`, "application/json");
+  downloadFile(
+    json,
+    `biasmapper-export-${dateStamp()}.json`,
+    "application/json",
+  );
 }
 
 export function importFromJSON(file: File): Promise<void> {
@@ -65,7 +69,15 @@ export function importFromJSON(file: File): Promise<void> {
 // ─── CSV Export ─────────────────────────────────────────────────────
 
 export function exportArticlesToCSV(articles: NewsArticle[]): void {
-  const headers = ["Title", "Source", "Country", "Published At", "URL", "Description", "Analysis ID"];
+  const headers = [
+    "Title",
+    "Source",
+    "Country",
+    "Published At",
+    "URL",
+    "Description",
+    "Analysis ID",
+  ];
   const rows = articles.map((a) => [
     escapeCSV(a.title),
     escapeCSV(a.source),
@@ -82,10 +94,19 @@ export function exportArticlesToCSV(articles: NewsArticle[]): void {
 
 export function exportAnalysesToCSV(analyses: AnalysisResult[]): void {
   const headers = [
-    "ID", "Article ID", "Dominant Bias", "Secondary Bias", "Confidence",
-    "Analysis", "Key Themes", "Narrative Tone",
-    "Cognitive Biases", "Logical Fallacies",
-    "Premises", "Conclusions", "Created At",
+    "ID",
+    "Article ID",
+    "Dominant Bias",
+    "Secondary Bias",
+    "Confidence",
+    "Analysis",
+    "Key Themes",
+    "Narrative Tone",
+    "Cognitive Biases",
+    "Logical Fallacies",
+    "Premises",
+    "Conclusions",
+    "Created At",
   ];
   const rows = analyses.map((a) => [
     a.id,
@@ -96,8 +117,12 @@ export function exportAnalysesToCSV(analyses: AnalysisResult[]): void {
     escapeCSV(a.analysis),
     escapeCSV(a.keyThemes.join("; ")),
     escapeCSV(a.narrativeTone),
-    escapeCSV(a.cognitiveBiases.map((b) => `${b.name} (${b.severity})`).join("; ")),
-    escapeCSV(a.logicalFallacies.map((f) => `${f.name} (${f.severity})`).join("; ")),
+    escapeCSV(
+      a.cognitiveBiases.map((b) => `${b.name} (${b.severity})`).join("; "),
+    ),
+    escapeCSV(
+      a.logicalFallacies.map((f) => `${f.name} (${f.severity})`).join("; "),
+    ),
     escapeCSV(a.premises.join("; ")),
     escapeCSV(a.conclusions.join("; ")),
     a.createdAt,
@@ -114,7 +139,11 @@ export function exportToPDF(options: {
   analyses?: AnalysisResult[];
   narrative?: NarrativeSnapshot;
   outletProfiles?: OutletProfile[];
-  dashboardState?: { international: any[]; pakistan: any[]; narratives: any } | null;
+  dashboardState?: {
+    international: any[];
+    pakistan: any[];
+    narratives: any;
+  } | null;
   title?: string;
   country?: CountryConfig;
 }): void {
@@ -132,24 +161,41 @@ export function exportToPDF(options: {
   const narrativeData = dashState?.narratives;
 
   const biasColorMap: Record<string, string> = {
-    "L++": "#dc2626", "L+": "#f87171", L: "#fca5a5",
+    "L++": "#dc2626",
+    "L+": "#f87171",
+    L: "#fca5a5",
     C: "#6b7280",
-    R: "#86efac", "R+": "#4ade80", "R++": "#16a34a",
-    "T++": "#7c3aed", "T+": "#a78bfa", T: "#c4b5fd",
-    B: "#fbbf24", "B+": "#f59e0b", "B++": "#d97706",
+    R: "#86efac",
+    "R+": "#4ade80",
+    "R++": "#16a34a",
+    "T++": "#7c3aed",
+    "T+": "#a78bfa",
+    T: "#c4b5fd",
+    B: "#fbbf24",
+    "B+": "#f59e0b",
+    "B++": "#d97706",
   };
 
   const biasLabels: Record<string, string> = {
-    "L++": "Far Left", "L+": "Progressive", L: "Left",
+    "L++": "Far Left",
+    "L+": "Progressive",
+    L: "Left",
     C: "Center",
-    R: "Right", "R+": "Conservative", "R++": "Far Right",
-    "T++": "Est. Extreme", "T+": "Mainstream", T: "Establishment",
-    B: "Oppositional", "B+": "Grassroots", "B++": "Radical",
+    R: "Right",
+    "R+": "Conservative",
+    "R++": "Far Right",
+    "T++": "Est. Extreme",
+    "T+": "Mainstream",
+    T: "Establishment",
+    B: "Oppositional",
+    "B+": "Grassroots",
+    "B++": "Radical",
   };
 
   // Compute bias distribution with visual bars
   function biasDistribution(outletList: any[], accentColor: string): string {
-    if (outletList.length === 0) return '<p class="text-slate-500 italic">No data available</p>';
+    if (outletList.length === 0)
+      return '<p class="text-slate-500 italic">No data available</p>';
     const dist: Record<string, number> = {};
     outletList.forEach((o: any) => {
       dist[o.dominant_bias] = (dist[o.dominant_bias] || 0) + 1;
@@ -172,10 +218,11 @@ export function exportToPDF(options: {
             </div>
             <div style="text-align: right; min-width: 80px;">
               <span style="font-size: 14px; font-weight: 700; color: #e2e8f0;">${count}</span>
-              <span style="font-size: 11px; color: #64748b; display: block;">outlet${count > 1 ? 's' : ''}</span>
+              <span style="font-size: 11px; color: #64748b; display: block;">outlet${count > 1 ? "s" : ""}</span>
             </div>
           </div>`;
-      }).join("");
+      })
+      .join("");
   }
 
   // Normalize promoted/opposed to string
@@ -199,11 +246,13 @@ export function exportToPDF(options: {
 
   // Match articles to analyses
   const analysisMap = new Map<string, AnalysisResult>();
-  analyses.forEach(a => { if (a.articleId) analysisMap.set(a.articleId, a); });
+  analyses.forEach((a) => {
+    if (a.articleId) analysisMap.set(a.articleId, a);
+  });
 
   // Country name
-  const countryName = country ? `${country.flag} ${country.name}` : 'Regional';
-  const countryDescription = country?.description || '';
+  const countryName = country ? `${country.flag} ${country.name}` : "Regional";
+  const countryDescription = country?.description || "";
 
   const html = `
 <!DOCTYPE html>
@@ -563,8 +612,8 @@ export function exportToPDF(options: {
     <h1>⚖️ ${title}</h1>
     <p class="subtitle">Comprehensive Bias Analysis & Intelligence Report</p>
     <p class="timestamp">
-      Generated on ${new Date().toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' })}
-      ${country ? ` • Region: ${countryName}` : ''}
+      Generated on ${new Date().toLocaleString(undefined, { dateStyle: "full", timeStyle: "short" })}
+      ${country ? ` • Region: ${countryName}` : ""}
     </p>
   </div>
 
@@ -576,7 +625,7 @@ export function exportToPDF(options: {
       <div class="label">International Outlets</div>
     </div>
     <div class="stat-card">
-      <div class="icon">${country?.flag || '🏳️'}</div>
+      <div class="icon">${country?.flag || "🏳️"}</div>
       <div class="value">${countryData.length}</div>
       <div class="label">${countryName} Outlets</div>
     </div>
@@ -592,7 +641,9 @@ export function exportToPDF(options: {
     </div>
   </div>
 
-  ${international.length > 0 ? `
+  ${
+    international.length > 0
+      ? `
   <!-- International Bias Distribution -->
   <div class="section">
     <div class="section-header">
@@ -600,72 +651,108 @@ export function exportToPDF(options: {
       <span class="section-badge">${international.length} Outlets</span>
     </div>
     <div class="card">
-      ${biasDistribution(international, '#3b82f6')}
+      ${biasDistribution(international, "#3b82f6")}
     </div>
     <div class="card" style="margin-top: 20px;">
       <h3>📊 Outlet Breakdown</h3>
-      ${international.map((o: any) => `
+      ${international
+        .map(
+          (o: any) => `
         <div class="outlet-row">
           <div style="flex: 1; min-width: 0;">
             <div class="outlet-name">${o.outlet}</div>
             <div class="outlet-desc">${o.analysis}</div>
-            ${o.key_themes?.length > 0 ? `
+            ${
+              o.key_themes?.length > 0
+                ? `
               <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px;">
-                ${o.key_themes.slice(0, 3).map((t: string) => `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-size: 10px; padding: 3px 8px;">${t}</span>`).join('')}
+                ${o.key_themes
+                  .slice(0, 3)
+                  .map(
+                    (t: string) =>
+                      `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-size: 10px; padding: 3px 8px;">${t}</span>`,
+                  )
+                  .join("")}
               </div>
-            ` : ''}
+            `
+                : ""
+            }
           </div>
           <div style="text-align: right; flex-shrink: 0; margin-left: 20px;">
             <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
-              <span class="badge" style="background: ${biasColorMap[o.dominant_bias] || '#6b7280'}">${o.dominant_bias}</span>
-              <span class="badge badge-outline" style="border-color: ${biasColorMap[o.secondary_bias] || '#6b7280'}; color: ${biasColorMap[o.secondary_bias] || '#6b7280'}">${o.secondary_bias}</span>
+              <span class="badge" style="background: ${biasColorMap[o.dominant_bias] || "#6b7280"}">${o.dominant_bias}</span>
+              <span class="badge badge-outline" style="border-color: ${biasColorMap[o.secondary_bias] || "#6b7280"}; color: ${biasColorMap[o.secondary_bias] || "#6b7280"}">${o.secondary_bias}</span>
             </div>
             <span style="font-size: 13px; color: #94a3b8; font-weight: 600;">${Math.round(o.confidence * 100)}% confidence</span>
           </div>
         </div>
-      `).join("")}
+      `,
+        )
+        .join("")}
     </div>
   </div>
-  ` : ""}
+  `
+      : ""
+  }
 
-  ${countryData.length > 0 ? `
+  ${
+    countryData.length > 0
+      ? `
   <!-- ${countryName} Bias Distribution -->
   <div class="section">
     <div class="section-header">
-      <h2>${country?.flag || '🏳️'} ${countryName} Media Bias Distribution</h2>
+      <h2>${country?.flag || "🏳️"} ${countryName} Media Bias Distribution</h2>
       <span class="section-badge" style="background: linear-gradient(135deg, #10b981, #059669);">${countryData.length} Outlets</span>
     </div>
-    ${countryDescription ? `<p style="color: #94a3b8; margin-bottom: 20px; font-size: 15px; font-style: italic;">${countryDescription}</p>` : ''}
+    ${countryDescription ? `<p style="color: #94a3b8; margin-bottom: 20px; font-size: 15px; font-style: italic;">${countryDescription}</p>` : ""}
     <div class="card">
-      ${biasDistribution(countryData, '#10b981')}
+      ${biasDistribution(countryData, "#10b981")}
     </div>
     <div class="card" style="margin-top: 20px;">
       <h3>📊 Outlet Breakdown</h3>
-      ${countryData.map((o: any) => `
+      ${countryData
+        .map(
+          (o: any) => `
         <div class="outlet-row">
           <div style="flex: 1; min-width: 0;">
             <div class="outlet-name">${o.outlet}</div>
             <div class="outlet-desc">${o.analysis}</div>
-            ${o.key_themes?.length > 0 ? `
+            ${
+              o.key_themes?.length > 0
+                ? `
               <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px;">
-                ${o.key_themes.slice(0, 3).map((t: string) => `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 10px; padding: 3px 8px;">${t}</span>`).join('')}
+                ${o.key_themes
+                  .slice(0, 3)
+                  .map(
+                    (t: string) =>
+                      `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 10px; padding: 3px 8px;">${t}</span>`,
+                  )
+                  .join("")}
               </div>
-            ` : ''}
+            `
+                : ""
+            }
           </div>
           <div style="text-align: right; flex-shrink: 0; margin-left: 20px;">
             <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
-              <span class="badge" style="background: ${biasColorMap[o.dominant_bias] || '#6b7280'}">${o.dominant_bias}</span>
-              <span class="badge badge-outline" style="border-color: ${biasColorMap[o.secondary_bias] || '#6b7280'}; color: ${biasColorMap[o.secondary_bias] || '#6b7280'}">${o.secondary_bias}</span>
+              <span class="badge" style="background: ${biasColorMap[o.dominant_bias] || "#6b7280"}">${o.dominant_bias}</span>
+              <span class="badge badge-outline" style="border-color: ${biasColorMap[o.secondary_bias] || "#6b7280"}; color: ${biasColorMap[o.secondary_bias] || "#6b7280"}">${o.secondary_bias}</span>
             </div>
             <span style="font-size: 13px; color: #94a3b8; font-weight: 600;">${Math.round(o.confidence * 100)}% confidence</span>
           </div>
         </div>
-      `).join("")}
+      `,
+        )
+        .join("")}
     </div>
   </div>
-  ` : ""}
+  `
+      : ""
+  }
 
-  ${narrativeData?.narratives?.length > 0 ? `
+  ${
+    narrativeData?.narratives?.length > 0
+      ? `
   <!-- Detected Narratives -->
   <div class="section">
     <div class="section-header">
@@ -673,7 +760,9 @@ export function exportToPDF(options: {
       <span class="section-badge" style="background: linear-gradient(135deg, #f59e0b, #d97706);">${narrativeData.narratives.length} Narratives</span>
     </div>
     <div class="grid">
-      ${narrativeData.narratives.map((n: any) => `
+      ${narrativeData.narratives
+        .map(
+          (n: any) => `
         <div class="narrative-card">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
             <h3 style="margin: 0; flex: 1;">${n.title}</h3>
@@ -685,48 +774,65 @@ export function exportToPDF(options: {
           <div class="narrative-meta" style="background: rgba(15, 23, 42, 0.5); padding: 16px; border-radius: 12px;">
             <div>
               <span class="label">Promoted by</span>
-              <span class="badge" style="background: ${biasColorMap[normalizeBias(n.promoted_by)] || '#6b7280'}">${normalizeBias(n.promoted_by)}</span>
+              <span class="badge" style="background: ${biasColorMap[normalizeBias(n.promoted_by)] || "#6b7280"}">${normalizeBias(n.promoted_by)}</span>
             </div>
             <div>
               <span class="label">Opposed by</span>
-              <span class="badge badge-outline" style="border-color: ${biasColorMap[normalizeBias(n.opposed_by)] || '#6b7280'}; color: ${biasColorMap[normalizeBias(n.opposed_by)] || '#94a3b8'}">${normalizeBias(n.opposed_by)}</span>
+              <span class="badge badge-outline" style="border-color: ${biasColorMap[normalizeBias(n.opposed_by)] || "#6b7280"}; color: ${biasColorMap[normalizeBias(n.opposed_by)] || "#94a3b8"}">${normalizeBias(n.opposed_by)}</span>
             </div>
           </div>
         </div>
-      `).join("")}
+      `,
+        )
+        .join("")}
     </div>
-    ${narrativeData.trending_topics?.length > 0 ? `
+    ${
+      narrativeData.trending_topics?.length > 0
+        ? `
       <div class="card" style="margin-top: 20px;">
         <h3>📈 Trending Topics</h3>
         <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px;">
           ${narrativeData.trending_topics.map((t: string) => `<span class="badge" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">${t}</span>`).join("")}
         </div>
-        ${narrativeData.bias_tensions ? `
+        ${
+          narrativeData.bias_tensions
+            ? `
           <div style="margin-top: 20px; padding: 16px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.1)); border-radius: 12px; border-left: 4px solid #8b5cf6;">
             <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #a78bfa; margin-bottom: 8px; font-weight: 600;">Bias Tensions</p>
             <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">${narrativeData.bias_tensions}</p>
           </div>
-        ` : ""}
+        `
+            : ""
+        }
       </div>
-    ` : ""}
+    `
+        : ""
+    }
   </div>
-  ` : ""}
+  `
+      : ""
+  }
 
-  ${analyses.length > 0 ? `
+  ${
+    analyses.length > 0
+      ? `
   <div class="section">
     <div class="section-header">
       <h2>🧠 Analysis Results</h2>
       <span class="section-badge" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">${analyses.length} Analyses</span>
     </div>
-    ${analyses.map((a) => {
-      const relatedArticle = a.articleId ? articles.find(art => art.id === a.articleId) : null;
-      return `
+    ${analyses
+      .map((a) => {
+        const relatedArticle = a.articleId
+          ? articles.find((art) => art.id === a.articleId)
+          : null;
+        return `
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
           <h3 style="flex: 1; min-width: 250px; margin: 0; word-break: break-word;">${a.inputText.substring(0, 100)}${a.inputText.length > 100 ? "..." : ""}</h3>
           <div style="flex-shrink: 0; display: flex; gap: 8px;">
-            <span class="badge" style="background: ${biasColorMap[a.dominantBias] || '#6b7280'}">${a.dominantBias}</span>
-            <span class="badge badge-outline" style="border-color: ${biasColorMap[a.secondaryBias] || '#6b7280'}; color: ${biasColorMap[a.secondaryBias] || '#6b7280'}">${a.secondaryBias}</span>
+            <span class="badge" style="background: ${biasColorMap[a.dominantBias] || "#6b7280"}">${a.dominantBias}</span>
+            <span class="badge badge-outline" style="border-color: ${biasColorMap[a.secondaryBias] || "#6b7280"}; color: ${biasColorMap[a.secondaryBias] || "#6b7280"}">${a.secondaryBias}</span>
           </div>
         </div>
         <p>${a.analysis}</p>
@@ -735,12 +841,16 @@ export function exportToPDF(options: {
           <span style="font-weight: 600; color: #60a5fa;">Tone:</span> ${a.narrativeTone} • 
           <span style="font-weight: 600; color: #60a5fa;">Themes:</span> ${a.keyThemes.join(", ")}
         </div>
-        ${a.cognitiveBiases.length > 0 ? `
+        ${
+          a.cognitiveBiases.length > 0
+            ? `
           <div class="bias-list">
             <p style="color: #fbbf24; font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 18px;">⚠️</span> Cognitive Biases (${a.cognitiveBiases.length})
             </p>
-            ${a.cognitiveBiases.map((b) => `
+            ${a.cognitiveBiases
+              .map(
+                (b) => `
               <div class="bias-item">
                 <div style="flex: 1;">
                   <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
@@ -750,15 +860,23 @@ export function exportToPDF(options: {
                   <p style="font-size: 13px; color: #94a3b8; margin: 0;">${b.description}</p>
                 </div>
               </div>
-            `).join("")}
+            `,
+              )
+              .join("")}
           </div>
-        ` : ""}
-        ${a.logicalFallacies.length > 0 ? `
+        `
+            : ""
+        }
+        ${
+          a.logicalFallacies.length > 0
+            ? `
           <div class="bias-list">
             <p style="color: #f87171; font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 18px;">🚨</span> Logical Fallacies (${a.logicalFallacies.length})
             </p>
-            ${a.logicalFallacies.map((f) => `
+            ${a.logicalFallacies
+              .map(
+                (f) => `
               <div class="bias-item">
                 <div style="flex: 1;">
                   <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
@@ -768,20 +886,31 @@ export function exportToPDF(options: {
                   <p style="font-size: 13px; color: #94a3b8; margin: 0;">${f.description}</p>
                 </div>
               </div>
-            `).join("")}
+            `,
+              )
+              .join("")}
           </div>
-        ` : ""}
-        ${relatedArticle ? `
-          <div class="article-analysis" style="border-color: ${biasColorMap[a.dominantBias] || '#6b7280'};">
+        `
+            : ""
+        }
+        ${
+          relatedArticle
+            ? `
+          <div class="article-analysis" style="border-color: ${biasColorMap[a.dominantBias] || "#6b7280"};">
             <div style="font-size: 11px; color: #64748b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">📰 Related Article</div>
             <div style="font-size: 16px; color: #e2e8f0; font-weight: 600; margin-bottom: 4px;">${relatedArticle.title}</div>
             <div style="font-size: 13px; color: #64748b;">${relatedArticle.source} • ${new Date(relatedArticle.publishedAt).toLocaleDateString()}</div>
           </div>
-        ` : ""}
+        `
+            : ""
+        }
       </div>`;
-    }).join("")}
+      })
+      .join("")}
   </div>
-  ` : ""}
+  `
+      : ""
+  }
 
   <!-- Footer -->
   <div class="footer">
@@ -817,7 +946,11 @@ function escapeCSV(value: string): string {
   return value;
 }
 
-function downloadFile(content: string, filename: string, mimeType: string): void {
+function downloadFile(
+  content: string,
+  filename: string,
+  mimeType: string,
+): void {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
