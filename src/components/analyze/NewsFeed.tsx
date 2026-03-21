@@ -22,6 +22,7 @@ import {
   Zap,
   TrendingDown,
   TrendingUp,
+  Target,
 } from "lucide-react";
 import {
   type NewsArticle,
@@ -347,15 +348,15 @@ export function NewsFeed({ onAnalyzeArticle, isLLMReady, maxHeight = "750px" }: 
                             <Button
                               onClick={() => handleAnalyze(article)}
                               disabled={!isLLMReady || status === "analyzing"}
-                              className="h-8 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/50 transition-all"
+                              className="h-8 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border-none shadow-lg shadow-blue-900/20 active:scale-95 transition-all text-[10px] font-black uppercase tracking-widest"
                               size="sm"
                             >
                               {status === "analyzing" ? (
                                 <Loader2 className="h-3 w-3 animate-spin mr-2" />
                               ) : (
-                                <Sparkles className="h-3 w-3 mr-2 text-amber-500" />
+                                <Target className="h-3 w-3 mr-2 text-white" />
                               )}
-                              {status === "analyzing" ? "Analyzing" : "Classify"}
+                              {status === "analyzing" ? "Analyzing" : "Deep-Forensic Audit"}
                             </Button>
                           )}
                         </div>

@@ -396,13 +396,15 @@ export default function AnalyzePage() {
             </div>
             <div className="flex items-center gap-3">
               {lmStudioStatus?.isConnected && (
-                <Badge variant="outline" className="bg-green-900/20 border-green-700 text-green-400">
-                  <CheckCircle2 className="h-3 w-3 mr-1" />LM-Studio
+                <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold px-3 py-1 animate-pulse">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 mr-2 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  LM-Studio Active
                 </Badge>
               )}
               {lastUpdateTime && (
-                <Badge variant="outline" className="text-slate-400">
-                  <Clock className="h-3 w-3 mr-1" />{lastUpdateTime}
+                <Badge variant="outline" className="bg-slate-800/80 border-slate-700 text-slate-300 px-3 py-1 font-medium">
+                  <Clock className="h-3.5 w-3.5 mr-2 text-blue-400" />
+                  Last Updated: {lastUpdateTime}
                 </Badge>
               )}
               {/* Export / Import */}
@@ -460,33 +462,47 @@ export default function AnalyzePage() {
         )}
 
         {/* Action Bar */}
-        <Card className="bg-slate-800/50 border-slate-700 relative overflow-hidden">
+        <Card className="bg-slate-900/60 border-slate-800 relative overflow-hidden backdrop-blur-md shadow-2xl">
           {autoOperating && (
-            <div className="absolute top-0 left-0 w-full h-1 bg-slate-700/50">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-800/80">
               <div 
-                className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500 ease-out"
+                className="h-full bg-gradient-to-r from-amber-600 via-orange-500 to-amber-400 transition-all duration-700 ease-in-out shadow-[0_0_10px_rgba(245,158,11,0.5)]"
                 style={{ width: `${analysisProgress}%` }}
               />
             </div>
           )}
-          <CardContent className="pt-6">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex flex-col gap-1 min-w-[140px]">
-                <Button
-                  onClick={handleStartAnalysis}
-                  disabled={autoOperating || !isConfigured}
-                  className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 w-full"
-                >
-                  {autoOperating ? (
-                    <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Analyzing...</>
-                  ) : (
-                    <><Play className="h-4 w-4 mr-2" />Start Analysis</>
+          <CardContent className="pt-8 pb-6">
+            <div className="flex flex-wrap items-center justify-between gap-6">
+              <div className="flex items-center gap-6">
+                <div className="flex flex-col gap-2 min-w-[180px]">
+                  <Button
+                    onClick={handleStartAnalysis}
+                    disabled={autoOperating || !isConfigured}
+                    size="lg"
+                    className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 w-full font-bold shadow-lg shadow-orange-900/20 transition-all active:scale-95"
+                  >
+                    {autoOperating ? (
+                      <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Processing...</>
+                    ) : (
+                      <><Play className="h-4 w-4 mr-2" />Initiate Analysis Hub</>
+                    )}
+                  </Button>
+                  {autoOperating && (
+                    <div className="flex items-center justify-center gap-2">
+                       <span className="text-[10px] text-amber-500 font-black uppercase tracking-[0.2em] animate-pulse">
+                        {analysisProgress}% Complete
+                      </span>
+                    </div>
                   )}
-                </Button>
+                </div>
+
                 {autoOperating && (
-                  <span className="text-[10px] text-amber-500 font-bold uppercase tracking-widest text-center animate-pulse">
-                    {analysisProgress}% Complete
-                  </span>
+                   <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-slate-950/40 rounded-xl border border-slate-800">
+                      <div className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                        Live Deep-Forensic Audit in Progress
+                      </span>
+                   </div>
                 )}
               </div>
 
