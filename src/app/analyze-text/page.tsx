@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -20,6 +20,7 @@ import {
   Brain,
   FileDown,
   CheckCircle2,
+  Zap,
 } from "lucide-react";
 import { isAPIConfigured } from "@/lib/api-config";
 import { analyzeTextBias, debiasText, type BiasAnalysis } from "@/lib/api-service";
@@ -35,6 +36,8 @@ const biasColors: Record<string, string> = {
   B: "#fbbf24", "B+": "#f59e0b", "B++": "#d97706",
 };
 
+import { AnalyzeResultDisplay } from "@/components/analyze/AnalyzeResultDisplay";
+
 export default function AnalyzeTextPage() {
   const [customText, setCustomText] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
@@ -46,6 +49,50 @@ export default function AnalyzeTextPage() {
     changes_made: string[];
   } | null>(null);
   const isConfigured = isAPIConfigured();
+
+  // Load state from localStorage on mount
+  useEffect(() => {
+    const savedText = localStorage.getItem("analyze_text_input");
+    const savedResult = localStorage.getItem("analyze_text_result");
+    const savedDebias = localStorage.getItem("analyze_text_debias");
+
+    if (savedText) setCustomText(savedText);
+    if (savedResult) {
+      try {
+        setResult(JSON.parse(savedResult));
+      } catch (e) {
+        console.error("Error parsing saved analysis result", e);
+      }
+    }
+    if (savedDebias) {
+      try {
+        setDebiasResult(JSON.parse(savedDebias));
+      } catch (e) {
+        console.error("Error parsing saved debias result", e);
+      }
+    }
+  }, []);
+
+  // Save state to localStorage on change
+  useEffect(() => {
+    localStorage.setItem("analyze_text_input", customText);
+  }, [customText]);
+
+  useEffect(() => {
+    if (result) {
+      localStorage.setItem("analyze_text_result", JSON.stringify(result));
+    } else {
+      localStorage.removeItem("analyze_text_result");
+    }
+  }, [result]);
+
+  useEffect(() => {
+    if (debiasResult) {
+      localStorage.setItem("analyze_text_debias", JSON.stringify(debiasResult));
+    } else {
+      localStorage.removeItem("analyze_text_debias");
+    }
+  }, [debiasResult]);
 
   const handleAnalyze = async () => {
     if (!customText.trim() || !isConfigured) return;
@@ -63,10 +110,28 @@ export default function AnalyzeTextPage() {
         analysis: biasResult.analysis,
         keyThemes: biasResult.key_themes,
         narrativeTone: biasResult.narrative_tone,
-        cognitiveBiases: [],
-        logicalFallacies: [],
-        premises: [],
-        conclusions: [],
+        cognitiveBiases: biasResult.cognitive_biases.map(b => ({
+          name: b.name,
+          description: b.description,
+          severity: b.severity
+        })),
+        logicalFallacies: biasResult.logical_fallacies.map(f => ({
+          name: f.name,
+          description: f.description,
+          severity: f.severity
+        })),
+        psychologicalIndicators: biasResult.psychological_indicators.map(p => ({
+          name: p.name,
+          description: p.description,
+          intensity: p.intensity
+        })),
+        sociologicalIndicators: biasResult.sociological_indicators.map(s => ({
+          name: s.name,
+          description: s.description,
+          impact: s.impact
+        })),
+        premises: biasResult.premises,
+        conclusions: biasResult.conclusions,
       });
       setResult(stored);
     } catch (e: any) {
@@ -104,13 +169,13 @@ export default function AnalyzeTextPage() {
       <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
             <Search className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Analyze Text</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Advanced Analysis</h1>
             <p className="text-slate-400 text-sm">
-              Paste any text to detect bias, cognitive biases, and logical fallacies
+              Detect complex bias patterns, cognitive errors, and logical flaws
             </p>
           </div>
         </div>
@@ -119,114 +184,83 @@ export default function AnalyzeTextPage() {
         <ThinkingProcess />
 
         {/* Input */}
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-slate-900/60 border-slate-800 backdrop-blur-md">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <Brain className="h-5 w-5 text-amber-500" />
-              Text Input
+              <Brain className="h-5 w-5 text-indigo-400" />
+              Intelligence Input
             </CardTitle>
-            <CardDescription className="text-slate-400">
-              Paste a news article, social media post, or any text content for analysis
+            <CardDescription className="text-slate-500 text-xs">
+              Paste content for multi-dimensional psychological and sociological auditing
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="analyzeTextInput" className="text-slate-300">
-                Text to Analyze
+              <Label htmlFor="analyzeTextInput" className="text-slate-400 text-xs font-bold uppercase tracking-widest">
+                Source Content
               </Label>
               <textarea
                 id="analyzeTextInput"
-                className="w-full h-48 p-4 rounded-lg bg-slate-700 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors resize-y"
+                className="w-full h-48 p-4 rounded-xl bg-slate-950/50 border border-slate-800 text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-y text-sm font-medium"
                 placeholder="Paste news article, social media post, or any text content here..."
                 value={customText}
                 onChange={(e) => setCustomText(e.target.value)}
               />
-              <p className="text-xs text-slate-500">{customText.length} characters</p>
+              <div className="flex justify-between items-center text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                <span>{customText.length} characters</span>
+                <span className={isConfigured ? "text-emerald-500" : "text-amber-500"}>
+                  {isConfigured ? "AI Ready" : "API Required"}
+                </span>
+              </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button
                 onClick={handleAnalyze}
                 disabled={!customText.trim() || !isConfigured || analyzing}
-                className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500"
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-11 px-8 shadow-lg shadow-indigo-500/20"
               >
                 {analyzing ? (
-                  <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Analyzing...</>
+                  <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Processing Logic...</>
                 ) : (
-                  <><Search className="h-4 w-4 mr-2" />Analyze Bias</>
+                  <><Zap className="h-4 w-4 mr-2" />Run Deep Analysis</>
                 )}
               </Button>
               <Button
                 onClick={handleDebias}
                 disabled={!customText.trim() || !isConfigured || debiasing}
                 variant="outline"
-                className="border-green-600 text-green-400 hover:bg-green-900/20"
+                className="border-slate-800 bg-slate-800/20 text-slate-300 hover:bg-slate-800 h-11 px-8"
               >
                 {debiasing ? (
-                  <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Debiasing...</>
+                  <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Neutralizing...</>
                 ) : (
-                  <><ArrowLeftRight className="h-4 w-4 mr-2" />Debias Text</>
+                  <><ArrowLeftRight className="h-4 w-4 mr-2" />Debias Content</>
                 )}
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Analysis Result */}
+        {/* Results Toolbar */}
         {result && (
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-white">Analysis Result</CardTitle>
-                <div className="flex gap-2">
-                  <Button onClick={handleExportPDF} size="sm" variant="outline" className="border-slate-600 text-slate-300">
-                    <FileDown className="h-3.5 w-3.5 mr-1.5" />PDF
-                  </Button>
-                  <Button onClick={handleExportCSV} size="sm" variant="outline" className="border-slate-600 text-slate-300">
-                    <FileDown className="h-3.5 w-3.5 mr-1.5" />CSV
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Badge
-                  style={{ backgroundColor: biasColors[result.dominantBias] || "#6b7280" }}
-                  className="text-white text-sm px-3 py-1"
-                >
-                  {result.dominantBias}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  style={{
-                    borderColor: biasColors[result.secondaryBias] || "#6b7280",
-                    color: biasColors[result.secondaryBias] || "#6b7280",
-                  }}
-                  className="text-sm px-3 py-1"
-                >
-                  {result.secondaryBias}
-                </Badge>
-              </div>
-              <p className="text-slate-300">{result.analysis}</p>
-              <div className="flex items-center gap-2">
-                <span className="text-slate-400 text-sm">Confidence:</span>
-                <Progress value={result.confidence * 100} className="h-2 flex-1" />
-                <span className="text-slate-400 text-sm">{Math.round(result.confidence * 100)}%</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {result.keyThemes.map((theme, i) => (
-                  <Badge key={i} variant="secondary" className="bg-slate-600 text-slate-200">
-                    {theme}
-                  </Badge>
-                ))}
-              </div>
-              {result.narrativeTone && (
-                <p className="text-sm text-slate-400">
-                  <span className="font-medium text-slate-300">Tone:</span> {result.narrativeTone}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <div className="flex items-center justify-between px-2">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              Audited Result
+            </h3>
+            <div className="flex gap-2">
+              <Button onClick={handleExportPDF} size="sm" variant="ghost" className="text-slate-500 hover:text-white hover:bg-slate-800 h-8 text-[10px] font-bold uppercase tracking-widest">
+                <FileDown className="h-3 w-3 mr-1.5" /> Export PDF
+              </Button>
+              <Button onClick={handleExportCSV} size="sm" variant="ghost" className="text-slate-500 hover:text-white hover:bg-slate-800 h-8 text-[10px] font-bold uppercase tracking-widest">
+                <FileDown className="h-3 w-3 mr-1.5" /> Export CSV
+              </Button>
+            </div>
+          </div>
         )}
+
+        {/* Analysis Result Display */}
+        {result && <AnalyzeResultDisplay result={result} />}
 
         {/* Debias Result */}
         {debiasResult && (

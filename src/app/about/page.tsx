@@ -13,7 +13,12 @@ import {
   Lightbulb,
   Code,
   ExternalLink,
-  Github
+  Github,
+  Zap,
+  Shield,
+  ShieldCheck,
+  Brain,
+  MessageSquare,
 } from 'lucide-react'
 
 const biasDefinitions = [
@@ -57,162 +62,195 @@ const useCases = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-slate-950 text-slate-200 selection:bg-purple-500/30">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-900 via-slate-900 to-indigo-900 text-white py-20">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAyNHYySDE0di0yaDIyek0zNiAxNHYySDE0di0yaDIyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 pt-32 pb-20 border-b border-indigo-500/10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(99,102,241,0.15),transparent)] pointer-events-none" />
         
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-6 shadow-xl">
-            <Scale className="h-8 w-8 text-white" />
+        <div className="relative max-w-5xl mx-auto px-6 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-widest mb-8 animate-pulse">
+            <Zap className="h-3 w-3" />
+            Empowering Cognitive Sovereignty
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold mb-4">
-            Understanding the BiasMapper Framework
+          <h1 className="text-5xl lg:text-7xl font-black mb-6 tracking-tighter text-white">
+            The Science of <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Media Auditing</span>
           </h1>
-          <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-            A comprehensive guide to our directional bias classification system for fair and balanced analysis.
+          <p className="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed font-medium">
+            BiasMapper is a deep-forensic framework designed to deconstruct the mechanics of persuasion, 
+            mapping ideological positioning and cognitive distortion in real-time.
           </p>
         </div>
       </section>
 
+      {/* Video Deep Dive Section */}
+      <section className="py-24 bg-slate-900/50 relative overflow-hidden">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid lg:grid-cols-5 gap-16 items-center">
+            <div className="lg:col-span-2 space-y-8">
+              <div className="space-y-4">
+                <h2 className="text-3xl font-bold text-white tracking-tight">Conceptual Origins</h2>
+                <div className="h-1 w-20 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full" />
+              </div>
+              <p className="text-slate-400 leading-relaxed text-lg">
+                Understanding directional bias requires moving beyond simplistic left-right binaries. 
+                Our framework explores the intersection of ideological alignment and institutional 
+                power dynamics.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 group">
+                  <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                    <Scale className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm">Balanced Forensics</h4>
+                    <p className="text-xs text-slate-500">Multidimensional auditing of truth claims.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 group">
+                  <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/20 group-hover:bg-purple-500 group-hover:text-white transition-all">
+                    <Shield className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm">Cognitive Defense</h4>
+                    <p className="text-xs text-slate-500">Screening for logical traps and fallacies.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="lg:col-span-3">
+              <div className="relative group">
+                <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-3xl opacity-10 blur-2xl group-hover:opacity-20 transition-all duration-700" />
+                <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-950">
+                  <iframe 
+                    width="100%" 
+                    height="100%" 
+                    src="https://www.youtube.com/embed/REYUkC1bW_w" 
+                    title="BiasMapper Framework Introduction" 
+                    frameBorder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                    allowFullScreen
+                    className="opacity-90 group-hover:opacity-100 transition-opacity"
+                  ></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Framework Overview */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">The BiasMapper Framework</h2>
-            <p className="text-lg text-slate-600 max-w-3xl mx-auto">
-              Unlike traditional unidirectional bias scales, BiasMapper uses a two-axis system that captures both 
-              ideological positioning and societal alignment, providing a more nuanced understanding of media perspectives.
+      <section className="py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-20 space-y-4">
+            <h2 className="text-4xl font-black text-white tracking-tighter">The Dual-Axis Architecture</h2>
+            <p className="text-slate-400 max-w-2xl mx-auto text-lg leading-relaxed">
+              We replace unidirectional scales with a high-resolution map of human ideation and institutional alignment.
             </p>
           </div>
 
-          {/* Axes Explanation */}
-          <div className="grid md:grid-cols-2 gap-8 mb-16">
-            <Card className="border-0 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-red-500 to-blue-500 flex items-center justify-center">
-                    <ArrowRight className="h-5 w-5 text-white" />
-                  </div>
-                  Ideological Axis (L/R)
-                </CardTitle>
-                <CardDescription>
-                  Measures political and economic positioning
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-600 mb-4">
-                  The ideological axis spans from Left (L) through Center (C) to Right (R), with intensity 
-                  modifiers indicating the strength of alignment. This captures traditional political spectrum 
-                  positioning.
-                </p>
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li className="flex items-center gap-2">
-                    <Badge className="bg-red-500">L++</Badge>
-                    <span>Far Left - Radical progressive, anti-capitalist</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Badge className="bg-gray-400">C</Badge>
-                    <span>Center - Balanced, neutral perspectives</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Badge className="bg-blue-500">R++</Badge>
-                    <span>Far Right - Radical conservative, nationalist</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
+          <div className="grid md:grid-cols-2 gap-10">
+            {/* Ideological Axis */}
+            <div className="group p-8 rounded-3xl bg-slate-900/40 border border-slate-800/50 hover:border-indigo-500/30 transition-all duration-500 backdrop-blur-sm">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform">
+                  <ArrowRight className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-white tracking-tight">Ideological Dimension</h3>
+                  <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Left / Center / Right</div>
+                </div>
+              </div>
+              
+              <p className="text-slate-400 mb-8 leading-relaxed font-medium">
+                Measures the core political and economic positioning. From radical progressivism (L++) 
+                through neutral arbitration (C) to traditionalist conservatism (R++).
+              </p>
 
-            <Card className="border-0 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-purple-500 to-amber-500 flex items-center justify-center">
-                    <ArrowRight className="h-5 w-5 text-white rotate-90" />
-                  </div>
-                  Societal Axis (T/B)
-                </CardTitle>
-                <CardDescription>
-                  Measures relationship to institutional power
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-600 mb-4">
-                  The societal axis measures how content relates to established power structures, from 
-                  Top/Establishment (T) alignment to Bottom/Oppositional (B) perspectives.
-                </p>
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li className="flex items-center gap-2">
-                    <Badge className="bg-purple-500">T++</Badge>
-                    <span>Establishment Extreme - Complete institutional trust</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Badge className="bg-purple-400">T+</Badge>
-                    <span>Mainstream - Generally pro-institution</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Badge className="bg-amber-500">B++</Badge>
-                    <span>Radical Dissent - Strongly anti-establishment</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/50 border border-slate-800/50">
+                   <div className="flex items-center gap-3">
+                     <Badge className="bg-red-500/20 text-red-400 border-red-500/30 px-3 font-black">L++</Badge>
+                     <span className="text-xs font-bold text-slate-300">Radical Progressive</span>
+                   </div>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/50 border border-slate-800/50">
+                   <div className="flex items-center gap-3">
+                     <Badge className="bg-slate-700 text-slate-300 border-slate-600 px-3 font-black">C</Badge>
+                     <span className="text-xs font-bold text-slate-300">Centrist / Neutral</span>
+                   </div>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/50 border border-slate-800/50">
+                   <div className="flex items-center gap-3">
+                     <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 px-3 font-black">R++</Badge>
+                     <span className="text-xs font-bold text-slate-300">Far Right / Nationalist</span>
+                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Societal Axis */}
+            <div className="group p-8 rounded-3xl bg-slate-900/40 border border-slate-800/50 hover:border-amber-500/30 transition-all duration-500 backdrop-blur-sm">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-110 transition-transform">
+                  <ArrowRight className="h-7 w-7 text-white rotate-90" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-white tracking-tight">Societal Alignment</h3>
+                  <div className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Establishment / Grassroots</div>
+                </div>
+              </div>
+              
+              <p className="text-slate-400 mb-8 leading-relaxed font-medium">
+                Measures the relationship to institutional power. From complete establishment trust (T++) 
+                to structural skepticism and radical dissent (B++).
+              </p>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/50 border border-slate-800/50">
+                   <div className="flex items-center gap-3">
+                     <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 px-3 font-black">T++</Badge>
+                     <span className="text-xs font-bold text-slate-300">Institutional / Official</span>
+                   </div>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/50 border border-slate-800/50">
+                   <div className="flex items-center gap-3">
+                     <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 px-3 font-black">B++</Badge>
+                     <span className="text-xs font-bold text-slate-300">Radical Dissent / Outsider</span>
+                   </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Bias Code Definitions */}
-      <section className="py-20 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">Bias Code Reference</h2>
-            <p className="text-lg text-slate-600">
-              Complete definitions for all BiasMapper classification codes
-            </p>
+      {/* Advanced Capabilities Section */}
+      <section className="py-24 bg-slate-950 border-t border-slate-900">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+            <div className="space-y-4">
+              <h2 className="text-4xl font-black text-white tracking-tighter">Deep-Forensic Capabilities</h2>
+              <p className="text-slate-500 max-w-xl font-medium leading-relaxed">
+                Beyond mere classification, BiasMapper audits the hidden engines of thought and communication.
+              </p>
+            </div>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {biasDefinitions.map((bias) => (
-              <Card key={bias.code} className="border-0 shadow-md hover:shadow-lg transition-shadow">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`h-10 w-10 rounded-lg ${bias.color} flex items-center justify-center text-white font-bold text-sm`}>
-                      {bias.code}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900">{bias.label}</p>
-                    </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: ShieldCheck, title: "Fallacy Detection", desc: "Identifying logical traps and circular reasoning in arguments." },
+              { icon: Brain, title: "Cognitive Auditing", desc: "Detection of confirmation bias and heuristic-based distortions." },
+              { icon: Users, title: "Sociological Mapping", desc: "Analyzing power dynamics and in-group/out-group positioning." },
+              { icon: MessageSquare, title: "Psychological Screen", desc: "Identifying emotional framing and high-intensity persuasion." },
+            ].map((cap, i) => (
+              <Card key={i} className="bg-slate-900/60 border-slate-800/80 hover:bg-slate-900 transition-all duration-300 group shadow-2xl">
+                <CardContent className="pt-8">
+                  <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 mb-6 group-hover:scale-110 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                    <cap.icon className="h-5 w-5" />
                   </div>
-                  <p className="text-sm text-slate-600">{bias.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Use Cases */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">Who Should Use BiasMapper?</h2>
-            <p className="text-lg text-slate-600">
-              Practical applications for understanding media bias
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {useCases.map((useCase, index) => (
-              <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all group">
-                <CardContent className="pt-6">
-                  <div className="flex items-start gap-4">
-                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                      <useCase.icon className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-900 mb-2">{useCase.title}</h3>
-                      <p className="text-slate-600">{useCase.description}</p>
-                    </div>
-                  </div>
+                  <h4 className="font-black text-white mb-3 text-sm tracking-tight">{cap.title}</h4>
+                  <p className="text-xs text-slate-500 leading-relaxed font-medium">{cap.desc}</p>
                 </CardContent>
               </Card>
             ))}
@@ -221,23 +259,24 @@ export default function AboutPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-indigo-600">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">Ready to Start Analyzing?</h2>
-          <p className="text-xl text-blue-100 mb-8">
-            Configure your API and begin uncovering bias patterns in media content.
+      <section className="py-32 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-purple-600 opacity-10" />
+        <div className="relative max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-4xl lg:text-5xl font-black text-white mb-8 tracking-tighter">Enter the Mapping Room.</h2>
+          <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed font-medium">
+            Begin your journey towards cognitive sovereignty by analyzing the narratives that shape your world.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50">
-              <Link href="/analyze">
-                Start Analyzing
+          <div className="flex flex-col sm:flex-row gap-6 justify-center">
+            <Button asChild size="lg" className="h-14 px-10 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-xl shadow-indigo-600/20">
+              <Link href="/analyze-text">
+                Start Analysis
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+            <Button asChild size="lg" variant="outline" className="h-14 px-10 border-slate-800 bg-slate-900/50 text-slate-200 font-bold rounded-2xl hover:bg-slate-800 transition-all">
               <a href="https://github.com/mskDev0092/BiasMapper" target="_blank" rel="noopener noreferrer">
                 <Github className="mr-2 h-5 w-5" />
-                View on GitHub
+                Open Source Repo
               </a>
             </Button>
           </div>
@@ -245,22 +284,32 @@ export default function AboutPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-400 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center gap-2 mb-4 md:mb-0">
-              <Scale className="h-6 w-6 text-blue-500" />
-              <span className="text-white font-semibold">BiasMapper</span>
+      <footer className="bg-slate-950 border-t border-slate-900 py-20 selection:bg-indigo-500/30">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid md:grid-cols-2 justify-between items-start gap-12">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                  <Scale className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-2xl font-black text-white tracking-widest uppercase">BiasMapper</span>
+              </div>
+              <p className="text-slate-500 max-w-sm leading-relaxed font-medium">
+                BiasMapper provides forensic directional classification as an analytical tool. 
+                Always review results in their full sociological context.
+              </p>
             </div>
-            <div className="flex items-center gap-6">
-              <a href="https://github.com/mskDev0092/BiasMapper" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
-                <Github className="h-5 w-5" />
-              </a>
+            
+            <div className="flex flex-col md:items-end gap-10">
+              <div className="flex items-center gap-4">
+                <a href="https://github.com/mskDev0092/BiasMapper" target="_blank" rel="noopener noreferrer" className="h-12 w-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-600 transition-all">
+                  <Github className="h-6 w-6" />
+                </a>
+              </div>
+              <p className="text-[10px] font-bold text-slate-700 uppercase tracking-[4px]">
+                Built for Objective Clarity &copy; 2026
+              </p>
             </div>
-          </div>
-          <div className="mt-8 pt-8 border-t border-slate-800 text-center text-sm">
-            <p>BiasMapper provides directional classification as a guide, not absolute truth.</p>
-            <p className="mt-2">Always review and validate content in context.</p>
           </div>
         </div>
       </footer>

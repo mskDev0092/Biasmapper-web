@@ -148,6 +148,7 @@ export default function AnalyzePage() {
   const [countdownTimer, setCountdownTimer] = useState(600);
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
 
   // DB stats
   const [dbStats, setDbStats] = useState({ articles: 0, analyses: 0 });
@@ -215,17 +216,22 @@ export default function AnalyzePage() {
   // Auto-fetch outlet data with rate limiting and outlet rotation
   const autoFetchOutletData = async () => {
     try {
+      setAnalysisProgress(0);
       const allInternationalOutlets = ["CNN", "BBC", "Reuters", "Guardian", "Al Jazeera", "Fox", "MSNBC"];
       const allPakistaniOutlets = ["Dawn", "Express", "Samaa", "Dunya", "Hum", "ARY", "Geo", "Pakistan Today"];
 
       const internationalOutlets = rotateOutlets(allInternationalOutlets, refreshCount);
       const pakistaniOutlets = rotateOutlets(allPakistaniOutlets, refreshCount);
 
+      // 1. Fetch data with progress (0-30%)
+      const intlData = await fetchAllOutletData(internationalOutlets, (p) => setAnalysisProgress(Math.round(p * 0.15)));
+      const pkData = await fetchAllOutletData(pakistaniOutlets, (p) => setAnalysisProgress(15 + Math.round(p * 0.15)));
+
+      // 2. Analyze International (30-60%)
       let intlAnalysis = liveInternational;
-      const intlData = await fetchAllOutletData(internationalOutlets);
       if (intlData.length > 0) {
         try {
-          const newIntlAnalysis = await analyzeMultipleOutlets(intlData);
+          const newIntlAnalysis = await analyzeMultipleOutlets(intlData, (p) => setAnalysisProgress(30 + Math.round(p * 0.3)));
           intlAnalysis = liveInternational.map(
             (o) => newIntlAnalysis.find((n) => n.outlet === o.outlet) || o
           );
@@ -235,11 +241,11 @@ export default function AnalyzePage() {
         }
       }
 
+      // 3. Analyze Pakistani (60-90%)
       let pkAnalysis = livePakistan;
-      const pkData = await fetchAllOutletData(pakistaniOutlets);
       if (pkData.length > 0) {
         try {
-          const newPkAnalysis = await analyzeMultipleOutlets(pkData);
+          const newPkAnalysis = await analyzeMultipleOutlets(pkData, (p) => setAnalysisProgress(60 + Math.round(p * 0.3)));
           pkAnalysis = livePakistan.map(
             (o) => newPkAnalysis.find((n) => n.outlet === o.outlet) || o
           );
@@ -249,8 +255,10 @@ export default function AnalyzePage() {
         }
       }
 
+      // 4. Analyze Narratives (90-100%)
       let finalNarratives = liveNarratives;
       if (intlAnalysis.length > 0 || pkAnalysis.length > 0) {
+        setAnalysisProgress(95);
         try {
           const allAnalyses = [...intlAnalysis, ...pkAnalysis];
           const narratives = await analyzeNarratives(
@@ -263,6 +271,7 @@ export default function AnalyzePage() {
         }
       }
 
+      setAnalysisProgress(100);
       saveAnalysisData({ international: intlAnalysis, pakistan: pkAnalysis, narratives: finalNarratives });
       setLastUpdateTime(getTimeSinceUpdate());
       setRefreshCount((prev) => prev + 1);
@@ -271,6 +280,7 @@ export default function AnalyzePage() {
       console.error("Auto-fetch outlet data error:", error);
     } finally {
       setAutoOperating(false);
+      setTimeout(() => setAnalysisProgress(0), 1000);
     }
   };
 
@@ -450,20 +460,35 @@ export default function AnalyzePage() {
         )}
 
         {/* Action Bar */}
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-slate-800/50 border-slate-700 relative overflow-hidden">
+          {autoOperating && (
+            <div className="absolute top-0 left-0 w-full h-1 bg-slate-700/50">
+              <div 
+                className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500 ease-out"
+                style={{ width: `${analysisProgress}%` }}
+              />
+            </div>
+          )}
           <CardContent className="pt-6">
             <div className="flex flex-wrap items-center gap-4">
-              <Button
-                onClick={handleStartAnalysis}
-                disabled={autoOperating || !isConfigured}
-                className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500"
-              >
-                {autoOperating ? (
-                  <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Analyzing...</>
-                ) : (
-                  <><Play className="h-4 w-4 mr-2" />Start Analysis</>
+              <div className="flex flex-col gap-1 min-w-[140px]">
+                <Button
+                  onClick={handleStartAnalysis}
+                  disabled={autoOperating || !isConfigured}
+                  className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 w-full"
+                >
+                  {autoOperating ? (
+                    <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Analyzing...</>
+                  ) : (
+                    <><Play className="h-4 w-4 mr-2" />Start Analysis</>
+                  )}
+                </Button>
+                {autoOperating && (
+                  <span className="text-[10px] text-amber-500 font-bold uppercase tracking-widest text-center animate-pulse">
+                    {analysisProgress}% Complete
+                  </span>
                 )}
-              </Button>
+              </div>
 
               <div className="flex items-center gap-2 text-sm">
                 <label className="flex items-center gap-2 cursor-pointer">

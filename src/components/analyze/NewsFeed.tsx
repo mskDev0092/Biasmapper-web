@@ -315,12 +315,33 @@ export function NewsFeed({ onAnalyzeArticle, isLLMReady, maxHeight = "750px" }: 
                               >
                                 {analysis!.dominantBias}
                               </Badge>
-                              {analysis!.cognitiveBiases.length > 0 && (
-                                <div className="p-1 px-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center gap-1">
-                                  <AlertTriangle className="h-3 w-3" />
-                                  <span className="text-[10px] font-bold">{analysis!.cognitiveBiases.length}</span>
-                                </div>
-                              )}
+                              
+                              <div className="flex gap-1.5 ml-2">
+                                {analysis!.logicalFallacies?.length > 0 && (
+                                  <div className="p-1 px-2 rounded-md bg-red-500/10 border border-red-500/20 text-red-500 flex items-center gap-1 tooltip-trigger">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    <span className="text-[10px] font-bold">{analysis!.logicalFallacies.length}</span>
+                                  </div>
+                                )}
+                                {analysis!.cognitiveBiases?.length > 0 && (
+                                  <div className="p-1 px-2 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-500 flex items-center gap-1">
+                                    <Brain className="h-3 w-3" />
+                                    <span className="text-[10px] font-bold">{analysis!.cognitiveBiases.length}</span>
+                                  </div>
+                                )}
+                                {analysis!.psychologicalIndicators?.length > 0 && (
+                                  <div className="p-1 px-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center gap-1">
+                                    <Zap className="h-3 w-3" />
+                                    <span className="text-[10px] font-bold">{analysis!.psychologicalIndicators.length}</span>
+                                  </div>
+                                )}
+                                {analysis!.sociologicalIndicators?.length > 0 && (
+                                  <div className="p-1 px-2 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 flex items-center gap-1">
+                                    <Globe className="h-3 w-3" />
+                                    <span className="text-[10px] font-bold">{analysis!.sociologicalIndicators.length}</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           ) : (
                             <Button

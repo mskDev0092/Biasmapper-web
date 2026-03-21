@@ -54,6 +54,8 @@ export interface AnalysisResult extends DBRecord {
   // V2: Advanced detection
   cognitiveBiases: CognitiveBiasEntry[];
   logicalFallacies: LogicalFallacyEntry[];
+  psychologicalIndicators: PsychologicalIndicatorEntry[];
+  sociologicalIndicators: SociologicalIndicatorEntry[];
   premises: string[];
   conclusions: string[];
 }
@@ -68,6 +70,18 @@ export interface LogicalFallacyEntry {
   name: string; // e.g. "Ad Hominem"
   description: string;
   severity: "low" | "medium" | "high";
+}
+
+export interface PsychologicalIndicatorEntry {
+  name: string; // e.g. "Fear-mongering"
+  description: string;
+  intensity: "low" | "medium" | "high";
+}
+
+export interface SociologicalIndicatorEntry {
+  name: string; // e.g. "Out-group Villification"
+  description: string;
+  impact: "low" | "medium" | "high";
 }
 
 // ─── Narratives ─────────────────────────────────────────────────────

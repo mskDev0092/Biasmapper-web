@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis, Cell } from "recharts";
-import { TrendingUp, ArrowUpRight, ArrowDownRight, Minus, Share2, Shield, AlertTriangle } from "lucide-react";
+import { TrendingUp, ArrowUpRight, ArrowDownRight, Minus, Share2, Shield, AlertTriangle, Brain, Zap, MessageSquare, ShieldCheck } from "lucide-react";
 
 export interface DashboardTabProps {
   liveInternational: any[];
@@ -280,6 +280,46 @@ export function DashboardTab({
                           className="h-1.5 bg-slate-900 [&>div]:bg-gradient-to-r [&>div]:from-blue-600 [&>div]:to-indigo-400"
                         />
                       </div>
+
+                      {/* Advanced Indicators */}
+                      {(outlet.logical_fallacies?.length > 0 || outlet.cognitive_biases?.length > 0) && (
+                        <div className="mt-4 pt-4 border-t border-slate-800/50 space-y-3">
+                          {outlet.logical_fallacies?.length > 0 && (
+                            <div className="space-y-1">
+                              <span className="text-[9px] font-bold text-red-500/70 uppercase tracking-tighter flex items-center gap-1">
+                                <AlertTriangle className="h-2.5 w-2.5" /> Fallacies
+                              </span>
+                              <div className="flex flex-wrap gap-1">
+                                {outlet.logical_fallacies.slice(0, 2).map((f: any, i: number) => (
+                                  <Badge key={i} variant="outline" className="text-[8px] py-0 px-1 border-red-900/30 text-red-400">
+                                    {f.name}
+                                  </Badge>
+                                ))}
+                                {outlet.logical_fallacies.length > 2 && (
+                                  <span className="text-[8px] text-slate-600">+{outlet.logical_fallacies.length - 2} more</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {outlet.cognitive_biases?.length > 0 && (
+                            <div className="space-y-1">
+                              <span className="text-[9px] font-bold text-purple-500/70 uppercase tracking-tighter flex items-center gap-1">
+                                <Brain className="h-2.5 w-2.5" /> Cognitive
+                              </span>
+                              <div className="flex flex-wrap gap-1">
+                                {outlet.cognitive_biases.slice(0, 2).map((b: any, i: number) => (
+                                  <Badge key={i} variant="outline" className="text-[8px] py-0 px-1 border-purple-900/30 text-purple-400">
+                                    {b.name}
+                                  </Badge>
+                                ))}
+                                {outlet.cognitive_biases.length > 2 && (
+                                  <span className="text-[8px] text-slate-600">+{outlet.cognitive_biases.length - 2} more</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -321,6 +361,46 @@ export function DashboardTab({
                           className="h-1.5 bg-slate-900 [&>div]:bg-gradient-to-r [&>div]:from-emerald-600 [&>div]:to-teal-400"
                         />
                       </div>
+
+                      {/* Advanced Indicators */}
+                      {(outlet.logical_fallacies?.length > 0 || outlet.cognitive_biases?.length > 0) && (
+                        <div className="mt-4 pt-4 border-t border-slate-800/50 space-y-3">
+                          {outlet.logical_fallacies?.length > 0 && (
+                            <div className="space-y-1">
+                              <span className="text-[9px] font-bold text-red-500/70 uppercase tracking-tighter flex items-center gap-1">
+                                <AlertTriangle className="h-2.5 w-2.5" /> Fallacies
+                              </span>
+                              <div className="flex flex-wrap gap-1">
+                                {outlet.logical_fallacies.slice(0, 2).map((f: any, i: number) => (
+                                  <Badge key={i} variant="outline" className="text-[8px] py-0 px-1 border-red-900/30 text-red-400">
+                                    {f.name}
+                                  </Badge>
+                                ))}
+                                {outlet.logical_fallacies.length > 2 && (
+                                  <span className="text-[8px] text-slate-600">+{outlet.logical_fallacies.length - 2} more</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {outlet.cognitive_biases?.length > 0 && (
+                            <div className="space-y-1">
+                              <span className="text-[9px] font-bold text-purple-500/70 uppercase tracking-tighter flex items-center gap-1">
+                                <Brain className="h-2.5 w-2.5" /> Cognitive
+                              </span>
+                              <div className="flex flex-wrap gap-1">
+                                {outlet.cognitive_biases.slice(0, 2).map((b: any, i: number) => (
+                                  <Badge key={i} variant="outline" className="text-[8px] py-0 px-1 border-purple-900/30 text-purple-400">
+                                    {b.name}
+                                  </Badge>
+                                ))}
+                                {outlet.cognitive_biases.length > 2 && (
+                                  <span className="text-[8px] text-slate-600">+{outlet.cognitive_biases.length - 2} more</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}

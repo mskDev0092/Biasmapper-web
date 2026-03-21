@@ -170,27 +170,48 @@ export interface BiasAnalysis {
   analysis: string;
   key_themes: string[];
   narrative_tone: string;
+  cognitive_biases: Array<{ name: string; description: string; severity: "low" | "medium" | "high" }>;
+  logical_fallacies: Array<{ name: string; description: string; severity: "low" | "medium" | "high" }>;
+  psychological_indicators: Array<{ name: string; description: string; intensity: "low" | "medium" | "high" }>;
+  sociological_indicators: Array<{ name: string; description: string; impact: "low" | "medium" | "high" }>;
+  premises: string[];
+  conclusions: string[];
 }
 
 export async function analyzeTextBias(
   text: string,
   outletName?: string,
 ): Promise<BiasAnalysis> {
-  const prompt = `Analyze the following ${outletName ? `from "${outletName}"` : ""} content for bias:
+  const prompt = `Analyze the following ${outletName ? `from "${outletName}"` : ""} content for bias, cognitive errors, and logical flaws:
 
 TEXT TO ANALYZE:
 """
 ${text}
 """
 
-Return ONLY valid JSON (MUST be object, not array). Do not include any markdown, code blocks, or text before/after JSON:
+Return ONLY valid JSON. Your analysis MUST include:
+1. Dominant and Secondary Bias codes (L++, L+, L, C, R, R+, R++, T++, T+, T, B, B+, B++).
+2. Confidence level (0.0-1.0).
+3. Cognitive Biases: Identify specific biases (e.g., Confirmation Bias, Anchoring) with descriptions and severity.
+4. Logical Fallacies: Identify flaws in reasoning (e.g., Ad Hominem, Strawman) with descriptions and severity.
+5. Psychological Indicators: Identify emotional framing, fear-mongering, or persuasion techniques (intensity: low|medium|high).
+6. Sociological Indicators: Identify group dynamics, in-group/out-group distinctions, or power structures (impact: low|medium|high).
+7. Logical Structure: Explicitly list the observed premises and the conclusions drawn.
+
+JSON STRUCTURE:
 {
   "dominant_bias": "CODE",
   "secondary_bias": "CODE", 
   "confidence": 0.0-1.0,
-  "analysis": "Brief explanation",
-  "key_themes": ["theme1", "theme2", "theme3"],
-  "narrative_tone": "Description of tone"
+  "analysis": "Comprehensive explanation",
+  "key_themes": ["theme1", "theme2"],
+  "narrative_tone": "Description",
+  "cognitive_biases": [{"name": "Name", "description": "Desc", "severity": "low|medium|high"}],
+  "logical_fallacies": [{"name": "Name", "description": "Desc", "severity": "low|medium|high"}],
+  "psychological_indicators": [{"name": "Name", "description": "Desc", "intensity": "low|medium|high"}],
+  "sociological_indicators": [{"name": "Name", "description": "Desc", "impact": "low|medium|high"}],
+  "premises": ["Premise 1", "Premise 2"],
+  "conclusions": ["Conclusion 1"]
 }`;
 
   const response = await createChatCompletion([
@@ -228,10 +249,14 @@ Return ONLY valid JSON (MUST be object, not array). Do not include any markdown,
             secondary_bias: parsed.secondary_bias,
             confidence: Math.min(1, Math.max(0, parsed.confidence)),
             analysis: parsed.analysis || "",
-            key_themes: Array.isArray(parsed.key_themes)
-              ? parsed.key_themes
-              : [],
+            key_themes: Array.isArray(parsed.key_themes) ? parsed.key_themes : [],
             narrative_tone: parsed.narrative_tone || "",
+            cognitive_biases: Array.isArray(parsed.cognitive_biases) ? parsed.cognitive_biases : [],
+            logical_fallacies: Array.isArray(parsed.logical_fallacies) ? parsed.logical_fallacies : [],
+            psychological_indicators: Array.isArray(parsed.psychological_indicators) ? parsed.psychological_indicators : [],
+            sociological_indicators: Array.isArray(parsed.sociological_indicators) ? parsed.sociological_indicators : [],
+            premises: Array.isArray(parsed.premises) ? parsed.premises : [],
+            conclusions: Array.isArray(parsed.conclusions) ? parsed.conclusions : [],
           };
         }
       }
@@ -242,16 +267,7 @@ Return ONLY valid JSON (MUST be object, not array). Do not include any markdown,
       );
     } catch (e) {
       console.error("Failed to parse JSON:", e);
-      console.error(
-        "Attempted JSON:",
-        cleanResponse.substring(startIdx, Math.min(endIdx + 1, startIdx + 200)),
-      );
     }
-  } else {
-    console.error(
-      "No JSON object found in response. Response:",
-      cleanResponse.substring(0, 300),
-    );
   }
 
   throw new Error("Failed to parse bias analysis response");
@@ -259,10 +275,12 @@ Return ONLY valid JSON (MUST be object, not array). Do not include any markdown,
 
 export async function analyzeMultipleOutlets(
   outlets: Array<{ name: string; headlines: string[]; description?: string }>,
+  onProgress?: (progress: number) => void,
 ): Promise<Array<{ outlet: string } & BiasAnalysis>> {
   const results = [];
 
-  for (const outlet of outlets) {
+  for (let i = 0; i < outlets.length; i++) {
+    const outlet = outlets[i];
     const text = [
       outlet.description
         ? `Outlet: ${outlet.name} - ${outlet.description}`
@@ -290,7 +308,17 @@ export async function analyzeMultipleOutlets(
         analysis: "Unable to analyze - please try again",
         key_themes: ["general news"],
         narrative_tone: "Unknown",
+        cognitive_biases: [],
+        logical_fallacies: [],
+        psychological_indicators: [],
+        sociological_indicators: [],
+        premises: [],
+        conclusions: [],
       });
+    }
+
+    if (onProgress) {
+      onProgress(Math.round(((i + 1) / outlets.length) * 100));
     }
   }
 
@@ -500,8 +528,27 @@ export async function generateWithBias(
   topic: string,
   targetBias: string,
   format: string = "paragraph",
+  amount: "short" | "medium" | "long" = "medium",
+  psyIndicators: string[] = [],
+  socioIndicators: string[] = [],
 ): Promise<string> {
+  const amountInstruction = {
+    short: "Keep it brief (1-2 paragraphs or ~100-150 words).",
+    medium: "Provide a standard length (3-4 paragraphs or ~250-400 words).",
+    long: "Provide an in-depth exploration (5+ paragraphs or ~600-800 words).",
+  }[amount];
+
+  const psyPart = psyIndicators.length > 0 
+    ? `\nPsychological Framing to include: ${psyIndicators.join(", ")}`
+    : "";
+  
+  const socioPart = socioIndicators.length > 0
+    ? `\nSociological Framing to include: ${socioIndicators.join(", ")}`
+    : "";
+
   const prompt = `Write a ${format} about "${topic}" from a ${targetBias} perspective.
+  
+Length Requirement: ${amountInstruction}${psyPart}${socioPart}
 
 Bias code: ${targetBias}
 
@@ -799,6 +846,7 @@ export async function fetchOutletData(
  */
 export async function fetchAllOutletData(
   outletNames: string[],
+  onProgress?: (progress: number) => void,
 ): Promise<OutletData[]> {
   const results: OutletData[] = [];
   const errors: string[] = [];
@@ -823,6 +871,10 @@ export async function fetchAllOutletData(
         `${name}: ${error instanceof Error ? error.message : String(error)}`,
       );
       console.error(`Error fetching ${name}:`, error);
+    }
+
+    if (onProgress) {
+      onProgress(Math.round(((i + 1) / outletNames.length) * 100));
     }
   }
 
