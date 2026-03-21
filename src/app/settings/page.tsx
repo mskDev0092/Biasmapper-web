@@ -49,7 +49,12 @@ import {
 import { maskAPIKey } from "@/lib/encryption-utils";
 import { createChatCompletion } from "@/lib/api-service";
 import { detectLocalServices, DetectedService } from "@/lib/service-detection";
-import { NewsSettingsDB, type NewsApiSettings, clearAllData, DEFAULT_NEWS_SETTINGS } from "@/lib/local-db";
+import {
+  NewsSettingsDB,
+  type NewsApiSettings,
+  clearAllData,
+  DEFAULT_NEWS_SETTINGS,
+} from "@/lib/local-db";
 import Link from "next/link";
 
 export default function SettingsPage() {
@@ -72,7 +77,9 @@ export default function SettingsPage() {
   const [detectedServices, setDetectedServices] = useState<DetectedService[]>(
     [],
   );
-  const [newsSettings, setNewsSettings] = useState<NewsApiSettings>(DEFAULT_NEWS_SETTINGS);
+  const [newsSettings, setNewsSettings] = useState<NewsApiSettings>(
+    DEFAULT_NEWS_SETTINGS,
+  );
 
   useEffect(() => {
     const savedConfig = getAPIConfig();
@@ -121,16 +128,21 @@ export default function SettingsPage() {
     });
     setTestResult(null);
     setTestMessage("Settings saved successfully!");
-    
+
     // Save news settings too
     NewsSettingsDB.update(newsSettings);
-    
+
     setTimeout(() => setTestMessage(""), 3000);
   };
 
   const handleClear = () => {
-    if (!confirm("Are you sure you want to PERMANENTLY delete all local data, analyses, and news articles? This cannot be undone.")) return;
-    
+    if (
+      !confirm(
+        "Are you sure you want to PERMANENTLY delete all local data, analyses, and news articles? This cannot be undone.",
+      )
+    )
+      return;
+
     clearAllData();
     setConfig({
       endpoint: "",
@@ -240,24 +252,24 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <Settings className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-slate-900">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
               API Configuration
             </h1>
           </div>
-          <p className="text-slate-600">
+          <p className="text-slate-600 dark:text-slate-300">
             Configure your OpenAI-compatible API endpoint for bias analysis.
             Supports local models (Ollama), cloud services, or any compatible
             API.
           </p>
         </div>
 
-        <Card className="mb-8 border-0 shadow-lg">
+        <Card className="mb-8 border-0 shadow-lg dark:bg-slate-800">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               {isAPIConfigured() ? (
@@ -283,7 +295,7 @@ export default function SettingsPage() {
         {/* Configuration Form */}
         <div className="space-y-6">
           {/* Provider Selection */}
-          <Card className="border-0 shadow-lg">
+          <Card className="border-0 shadow-lg dark:bg-slate-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Server className="h-5 w-5 text-blue-600" />
@@ -324,7 +336,7 @@ export default function SettingsPage() {
                     setConfig((prev) => ({ ...prev, endpoint: e.target.value }))
                   }
                 />
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   For Ollama: http://localhost:11434/v1 • For LM-Studio:
                   http://localhost:8000/v1
                 </p>
@@ -333,7 +345,7 @@ export default function SettingsPage() {
           </Card>
 
           {/* Auto-Detect Local Services */}
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50">
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-indigo-900 dark:to-indigo-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Zap className="h-5 w-5 text-indigo-600" />
@@ -372,13 +384,13 @@ export default function SettingsPage() {
                   {detectedServices.map((service) => (
                     <div
                       key={service.name}
-                      className="p-3 bg-white rounded-lg border border-indigo-200 flex justify-between items-start"
+                      className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-indigo-200 dark:border-indigo-700 flex justify-between items-start"
                     >
                       <div className="flex-1">
-                        <h4 className="font-medium text-slate-900">
+                        <h4 className="font-medium text-slate-900 dark:text-slate-100">
                           {service.name}
                         </h4>
-                        <p className="text-xs text-slate-600 mt-1">
+                        <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
                           {service.endpoint}
                         </p>
                         {service.models && service.models.length > 0 && (
@@ -403,8 +415,8 @@ export default function SettingsPage() {
               )}
 
               {detectedServices.length === 0 && !detecting && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-sm text-amber-800">
+                <div className="p-3 bg-amber-50 dark:bg-amber-900 border border-amber-200 dark:border-amber-700 rounded-lg">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
                     No services found. If you have Ollama or LM-Studio running
                     on a custom port, manually configure below.
                   </p>
@@ -414,7 +426,7 @@ export default function SettingsPage() {
           </Card>
 
           {/* Manual Local Service Configuration */}
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-pink-50">
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900 dark:to-pink-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Server className="h-5 w-5 text-purple-600" />
@@ -500,7 +512,7 @@ export default function SettingsPage() {
                     setConfig((prev) => ({ ...prev, model: e.target.value }));
                   }}
                 />
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Enter any model name that's installed on your local service
                 </p>
               </div>
@@ -550,13 +562,13 @@ export default function SettingsPage() {
                     )}
                   </button>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   🔒 Encrypted before storage • For remote APIs only • Local
                   services don't need an API key
                 </p>
                 {config.apiKey && (
-                  <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
-                    <p className="text-xs text-slate-600">
+                  <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900 rounded border border-blue-200 dark:border-blue-700">
+                    <p className="text-xs text-slate-600 dark:text-slate-300">
                       Saved as:{" "}
                       <code className="font-mono text-blue-700">
                         {maskAPIKey(config.apiKey)}
@@ -564,7 +576,7 @@ export default function SettingsPage() {
                     </p>
                   </div>
                 )}
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   <strong>Optional for local services:</strong> Leave blank for
                   Ollama/LM-Studio, or enter any placeholder value
                 </p>
@@ -639,7 +651,7 @@ export default function SettingsPage() {
                     max={2}
                     step={0.1}
                   />
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Lower values are more deterministic, higher values more
                     creative
                   </p>
@@ -664,23 +676,31 @@ export default function SettingsPage() {
           </Card>
 
           {/* News API Configuration */}
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-blue-50">
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Newspaper className="h-5 w-5 text-blue-600" />
                 News API Configuration
               </CardTitle>
               <CardDescription>
-                Configure free news API keys to fetch latest articles for analysis
+                Configure free news API keys to fetch latest articles for
+                analysis
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="preferredNewsProvider">Preferred Provider</Label>
+                  <Label htmlFor="preferredNewsProvider">
+                    Preferred Provider
+                  </Label>
                   <Select
                     value={newsSettings.preferredProvider}
-                    onValueChange={(v: any) => setNewsSettings(prev => ({ ...prev, preferredProvider: v }))}
+                    onValueChange={(v: any) =>
+                      setNewsSettings((prev) => ({
+                        ...prev,
+                        preferredProvider: v,
+                      }))
+                    }
                   >
                     <SelectTrigger id="preferredNewsProvider">
                       <SelectValue />
@@ -689,7 +709,9 @@ export default function SettingsPage() {
                       <SelectItem value="gnews">GNews (Recommended)</SelectItem>
                       <SelectItem value="newsapi">NewsAPI.org</SelectItem>
                       <SelectItem value="currents">Currents API</SelectItem>
-                      <SelectItem value="google-rss">Google RSS (No Key Required)</SelectItem>
+                      <SelectItem value="google-rss">
+                        Google RSS (No Key Required)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-slate-500">
@@ -700,16 +722,26 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="newsCountries">Countries</Label>
                   <div className="flex gap-2 flex-wrap min-h-[40px] items-center">
-                    {["us", "pk", "gb", "ca", "in"].map(c => (
+                    {["us", "pk", "gb", "ca", "in"].map((c) => (
                       <Badge
                         key={c}
-                        variant={newsSettings.fetchCountries.includes(c) ? "default" : "outline"}
+                        variant={
+                          newsSettings.fetchCountries.includes(c)
+                            ? "default"
+                            : "outline"
+                        }
                         className="cursor-pointer uppercase"
                         onClick={() => {
-                          const countries = newsSettings.fetchCountries.includes(c)
-                            ? newsSettings.fetchCountries.filter(x => x !== c)
-                            : [...newsSettings.fetchCountries, c];
-                          setNewsSettings(prev => ({ ...prev, fetchCountries: countries }));
+                          const countries =
+                            newsSettings.fetchCountries.includes(c)
+                              ? newsSettings.fetchCountries.filter(
+                                  (x) => x !== c,
+                                )
+                              : [...newsSettings.fetchCountries, c];
+                          setNewsSettings((prev) => ({
+                            ...prev,
+                            fetchCountries: countries,
+                          }));
                         }}
                       >
                         {c}
@@ -727,10 +759,23 @@ export default function SettingsPage() {
                     type="password"
                     placeholder="Enter GNews API key"
                     value={newsSettings.gnewsApiKey}
-                    onChange={(e) => setNewsSettings(prev => ({ ...prev, gnewsApiKey: e.target.value }))}
+                    onChange={(e) =>
+                      setNewsSettings((prev) => ({
+                        ...prev,
+                        gnewsApiKey: e.target.value,
+                      }))
+                    }
                   />
                   <p className="text-xs text-slate-500">
-                    Get a free key at <a href="https://gnews.io/" target="_blank" className="text-blue-600 underline">gnews.io</a> (100 free requests/day)
+                    Get a free key at{" "}
+                    <a
+                      href="https://gnews.io/"
+                      target="_blank"
+                      className="text-blue-600 underline"
+                    >
+                      gnews.io
+                    </a>{" "}
+                    (100 free requests/day)
                   </p>
                 </div>
 
@@ -741,10 +786,23 @@ export default function SettingsPage() {
                     type="password"
                     placeholder="Enter NewsAPI.org key"
                     value={newsSettings.newsApiKey}
-                    onChange={(e) => setNewsSettings(prev => ({ ...prev, newsApiKey: e.target.value }))}
+                    onChange={(e) =>
+                      setNewsSettings((prev) => ({
+                        ...prev,
+                        newsApiKey: e.target.value,
+                      }))
+                    }
                   />
                   <p className="text-xs text-slate-500">
-                    Get a free key at <a href="https://newsapi.org/" target="_blank" className="text-blue-600 underline">newsapi.org</a> (Developer tier)
+                    Get a free key at{" "}
+                    <a
+                      href="https://newsapi.org/"
+                      target="_blank"
+                      className="text-blue-600 underline"
+                    >
+                      newsapi.org
+                    </a>{" "}
+                    (Developer tier)
                   </p>
                 </div>
 
@@ -755,10 +813,22 @@ export default function SettingsPage() {
                     type="password"
                     placeholder="Enter Currents API key"
                     value={newsSettings.currentsApiKey}
-                    onChange={(e) => setNewsSettings(prev => ({ ...prev, currentsApiKey: e.target.value }))}
+                    onChange={(e) =>
+                      setNewsSettings((prev) => ({
+                        ...prev,
+                        currentsApiKey: e.target.value,
+                      }))
+                    }
                   />
                   <p className="text-xs text-slate-500">
-                    Get a free key at <a href="https://currentsapi.services/" target="_blank" className="text-blue-600 underline">currentsapi.services</a>
+                    Get a free key at{" "}
+                    <a
+                      href="https://currentsapi.services/"
+                      target="_blank"
+                      className="text-blue-600 underline"
+                    >
+                      currentsapi.services
+                    </a>
                   </p>
                 </div>
               </div>
