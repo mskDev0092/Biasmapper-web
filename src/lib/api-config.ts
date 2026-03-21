@@ -1,18 +1,18 @@
+/**
+ * API Configuration for OpenAI-compatible endpoints
+ *
+ * SECURITY NOTES:
+ * - API keys are encrypted before storage using browser fingerprint
+ * - For local services (localhost), API key is optional
+ * - All API requests are made directly to the configured endpoint
+ * - Keys are NEVER sent to any intermediate servers
+ */
 import {
   encryptSensitiveData,
   decryptSensitiveData,
   validateNoSensitiveDataInLogs,
 } from "./encryption-utils";
 
-/**
- * API Configuration for OpenAI-compatible endpoints
- *
- * SECURITY NOTES:
- * - API keys are encrypted before storage using browser fingerprint
- * - API calls are proxied through /api/proxy endpoint on server
- * - Keys are NEVER sent directly to external APIs from the browser
- * - All API requests are rate-limited and validated server-side
- */
 export interface APIConfig {
   endpoint: string;
   apiKey: string;
@@ -100,7 +100,7 @@ export function saveAPIConfig(config: Partial<APIConfig>): void {
 
     // Store the config without the actual API key
     const configToStore = { ...updated };
-    delete (configToStore as any).apiKey;
+    delete (configToStore as Partial<APIConfig>).apiKey;
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(configToStore));
 
@@ -144,7 +144,7 @@ export function isAPIConfigured(): boolean {
   return !!(config.apiKey && config.endpoint);
 }
 
-// Predefined endpoints
+// Predefined endpoints for easy configuration
 export const PREDEFINED_ENDPOINTS = [
   {
     name: "OpenAI",

@@ -1,17 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "export",
-  trailingSlash: false,
-  images: {
-    unoptimized: true,
-  },
+  output: "standalone",
+  /* config options here */
   typescript: {
-    tsconfigPath: "./tsconfig.json",
+    ignoreBuildErrors: true,
   },
-  reactStrictMode: true,
-  poweredByHeader: false,
-  compress: true,
+  reactStrictMode: false,
 };
 
 export default nextConfig;

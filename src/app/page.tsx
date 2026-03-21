@@ -16,88 +16,27 @@ import {
   Zap,
   Shield,
   Globe,
+  Brain,
+  Target,
+  TrendingUp,
 } from "lucide-react";
+import { BIAS_COLORS, BIAS_LABELS, type BiasCode } from "@/lib/bias-constants";
 
-// Bias codes for the grid
-const biasCodes = [
-  {
-    code: "L++",
-    label: "Far Left",
-    color: "bg-red-500",
-    description: "Radical progressive, anti-capitalist perspectives",
-  },
-  {
-    code: "L+",
-    label: "Progressive",
-    color: "bg-red-400",
-    description: "Center-left, reform-oriented viewpoints",
-  },
-  {
-    code: "L",
-    label: "Left",
-    color: "bg-red-300",
-    description: "Mild progressive tendencies",
-  },
-  {
-    code: "C",
-    label: "Center",
-    color: "bg-gray-400",
-    description: "Neutral, balanced perspectives",
-  },
-  {
-    code: "R",
-    label: "Right",
-    color: "bg-blue-300",
-    description: "Mild conservative tendencies",
-  },
-  {
-    code: "R+",
-    label: "Conservative",
-    color: "bg-blue-400",
-    description: "Center-right, tradition-oriented",
-  },
-  {
-    code: "R++",
-    label: "Far Right",
-    color: "bg-blue-500",
-    description: "Radical conservative, nationalist",
-  },
-  {
-    code: "T++",
-    label: "Est. Extreme",
-    color: "bg-purple-500",
-    description: "Complete institutional alignment",
-  },
-  {
-    code: "T+",
-    label: "Mainstream",
-    color: "bg-purple-400",
-    description: "Trusts establishment institutions",
-  },
-  {
-    code: "T",
-    label: "Establishment",
-    color: "bg-purple-300",
-    description: "Generally pro-institution",
-  },
-  {
-    code: "B",
-    label: "Oppositional",
-    color: "bg-amber-300",
-    description: "Skeptical of institutions",
-  },
-  {
-    code: "B+",
-    label: "Grassroots",
-    color: "bg-amber-400",
-    description: "Bottom-up, anti-establishment",
-  },
-  {
-    code: "B++",
-    label: "Radical",
-    color: "bg-amber-500",
-    description: "Strongly anti-establishment",
-  },
+// Bias codes for the grid display
+const biasGridCodes = [
+  { code: "L++" as BiasCode, label: "Far Left", description: "Radical progressive, anti-capitalist perspectives" },
+  { code: "L+" as BiasCode, label: "Progressive", description: "Center-left, reform-oriented viewpoints" },
+  { code: "L" as BiasCode, label: "Left", description: "Mild progressive tendencies" },
+  { code: "C" as BiasCode, label: "Center", description: "Neutral, balanced perspectives" },
+  { code: "R" as BiasCode, label: "Right", description: "Mild conservative tendencies" },
+  { code: "R+" as BiasCode, label: "Conservative", description: "Center-right, tradition-oriented" },
+  { code: "R++" as BiasCode, label: "Far Right", description: "Radical conservative, nationalist" },
+  { code: "T++" as BiasCode, label: "Est. Extreme", description: "Complete institutional alignment" },
+  { code: "T+" as BiasCode, label: "Mainstream", description: "Trusts establishment institutions" },
+  { code: "T" as BiasCode, label: "Establishment", description: "Generally pro-institution" },
+  { code: "B" as BiasCode, label: "Oppositional", description: "Skeptical of institutions" },
+  { code: "B+" as BiasCode, label: "Grassroots", description: "Bottom-up, anti-establishment" },
+  { code: "B++" as BiasCode, label: "Radical", description: "Strongly anti-establishment" },
 ];
 
 const features = [
@@ -237,7 +176,8 @@ export default function LandingPage() {
                     {/* Row 1: T++ */}
                     <div className="col-start-4 row-start-1">
                       <div
-                        className="aspect-square rounded-lg bg-purple-500 flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
+                        className="aspect-square rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
+                        style={{ backgroundColor: BIAS_COLORS["T++"] }}
                         title="T++: Extreme Establishment"
                         role="tooltip"
                         aria-label="T++: Extreme Establishment"
@@ -249,7 +189,8 @@ export default function LandingPage() {
                     {/* Row 2: T+ */}
                     <div className="col-start-3 row-start-2">
                       <div
-                        className="aspect-square rounded-lg bg-purple-400 flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
+                        className="aspect-square rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
+                        style={{ backgroundColor: BIAS_COLORS["T+"] }}
                         title="T+: Mainstream"
                       >
                         T+
@@ -257,7 +198,8 @@ export default function LandingPage() {
                     </div>
                     <div className="col-start-5 row-start-2">
                       <div
-                        className="aspect-square rounded-lg bg-purple-400 flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
+                        className="aspect-square rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
+                        style={{ backgroundColor: BIAS_COLORS["T+"] }}
                         title="T+: Mainstream"
                       >
                         T+
@@ -265,67 +207,26 @@ export default function LandingPage() {
                     </div>
 
                     {/* Row 3: L++ to R++ */}
-                    <div className="col-start-1 row-start-3">
-                      <div
-                        className="aspect-square rounded-lg bg-red-500 flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
-                        title="L++: Far Left"
-                      >
-                        L++
+                    {(["L++", "L+", "L", "C", "R", "R+", "R++"] as BiasCode[]).map((code) => (
+                      <div key={code} className={`col-start-${["L++", "L+", "L", "C", "R", "R+", "R++"].indexOf(code) + 1} row-start-3`}>
+                        <div
+                          className="aspect-square rounded-lg flex items-center justify-center font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
+                          style={{ 
+                            backgroundColor: BIAS_COLORS[code],
+                            color: ["L", "R"].includes(code) ? "#1e293b" : "white"
+                          }}
+                          title={`${code}: ${BIAS_LABELS[code]}`}
+                        >
+                          {code}
+                        </div>
                       </div>
-                    </div>
-                    <div className="col-start-2 row-start-3">
-                      <div
-                        className="aspect-square rounded-lg bg-red-400 flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
-                        title="L+: Progressive"
-                      >
-                        L+
-                      </div>
-                    </div>
-                    <div className="col-start-3 row-start-3">
-                      <div
-                        className="aspect-square rounded-lg bg-red-300 flex items-center justify-center text-red-800 font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
-                        title="L: Left-leaning"
-                      >
-                        L
-                      </div>
-                    </div>
-                    <div className="col-start-4 row-start-3">
-                      <div
-                        className="aspect-square rounded-lg bg-gray-400 flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
-                        title="C: Center"
-                      >
-                        C
-                      </div>
-                    </div>
-                    <div className="col-start-5 row-start-3">
-                      <div
-                        className="aspect-square rounded-lg bg-blue-300 flex items-center justify-center text-blue-800 font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
-                        title="R: Right-leaning"
-                      >
-                        R
-                      </div>
-                    </div>
-                    <div className="col-start-6 row-start-3">
-                      <div
-                        className="aspect-square rounded-lg bg-blue-400 flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
-                        title="R+: Conservative"
-                      >
-                        R+
-                      </div>
-                    </div>
-                    <div className="col-start-7 row-start-3">
-                      <div
-                        className="aspect-square rounded-lg bg-blue-500 flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
-                        title="R++: Far Right"
-                      >
-                        R++
-                      </div>
-                    </div>
+                    ))}
 
                     {/* Row 4: B+ */}
                     <div className="col-start-3 row-start-4">
                       <div
-                        className="aspect-square rounded-lg bg-amber-400 flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
+                        className="aspect-square rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
+                        style={{ backgroundColor: BIAS_COLORS["B+"] }}
                         title="B+: Grassroots"
                       >
                         B+
@@ -333,7 +234,8 @@ export default function LandingPage() {
                     </div>
                     <div className="col-start-5 row-start-4">
                       <div
-                        className="aspect-square rounded-lg bg-amber-400 flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
+                        className="aspect-square rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
+                        style={{ backgroundColor: BIAS_COLORS["B+"] }}
                         title="B+: Grassroots"
                       >
                         B+
@@ -343,7 +245,8 @@ export default function LandingPage() {
                     {/* Row 5: B++ */}
                     <div className="col-start-4 row-start-5">
                       <div
-                        className="aspect-square rounded-lg bg-amber-500 flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
+                        className="aspect-square rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm cursor-help hover:scale-110 transition-transform"
+                        style={{ backgroundColor: BIAS_COLORS["B++"] }}
                         title="B++: Radical Dissent"
                       >
                         B++
@@ -474,6 +377,40 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Capabilities Section */}
+      <section className="py-16 sm:py-20 lg:py-28 bg-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
+              Advanced Capabilities
+            </h2>
+            <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+              Beyond mere classification, BiasMapper provides deep forensic analysis
+              of text content.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: Brain, title: "Cognitive Bias Detection", desc: "Identify confirmation bias, anchoring, and other cognitive distortions" },
+              { icon: Target, title: "Logical Fallacy Analysis", desc: "Detect ad hominem, strawman, and other logical fallacies" },
+              { icon: TrendingUp, title: "Narrative Mapping", desc: "Track how stories are framed across different perspectives" },
+              { icon: Shield, title: "Privacy-Focused", desc: "All analysis happens at your configured endpoint - your data stays private" },
+            ].map((cap, i) => (
+              <Card key={i} className="bg-slate-800/50 border-slate-700/50 backdrop-blur-sm">
+                <CardContent className="pt-6">
+                  <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 mb-4">
+                    <cap.icon className="h-6 w-6" />
+                  </div>
+                  <h4 className="font-bold text-white mb-2">{cap.title}</h4>
+                  <p className="text-sm text-slate-400 leading-relaxed">{cap.desc}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-16 sm:py-20 lg:py-28 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 relative overflow-hidden">
         <div className="absolute inset-0 opacity-5">
@@ -597,7 +534,7 @@ export default function LandingPage() {
 
           <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-slate-800">
             <div className="text-sm text-slate-500 mb-4 md:mb-0">
-              <p>&copy; 2024 BiasMapper. All rights reserved.</p>
+              <p>&copy; {new Date().getFullYear()} BiasMapper. All rights reserved.</p>
             </div>
             <div className="flex items-center gap-6">
               <a
