@@ -15,6 +15,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -39,6 +46,7 @@ import {
   Upload,
   Trash2,
   Rss,
+  ShieldCheck,
 } from "lucide-react";
 import { isAPIConfigured, getAPIConfig } from "@/lib/api-config";
 import {
@@ -60,6 +68,7 @@ import {
 } from "@/lib/analysis-storage";
 import { rotateOutlets, RATE_LIMIT_CONFIG } from "@/lib/rate-limiter";
 import { DashboardTab } from "@/components/analyze/DashboardTab";
+import { AnalyzeResultDisplay } from "@/components/analyze/AnalyzeResultDisplay";
 import { NewsFeed } from "@/components/analyze/NewsFeed";
 import {
   NewsArticlesDB,
@@ -67,6 +76,7 @@ import {
   NarrativeSnapshotsDB,
   OutletProfilesDB,
   type NewsArticle,
+  type AnalysisResult,
   exportAllData,
   clearAllData,
 } from "@/lib/local-db";
@@ -149,6 +159,7 @@ export default function AnalyzePage() {
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
   const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [selectedHistoricalAnalysis, setSelectedHistoricalAnalysis] = useState<AnalysisResult | null>(null);
 
   // DB stats
   const [dbStats, setDbStats] = useState({ articles: 0, analyses: 0 });
@@ -227,6 +238,37 @@ export default function AnalyzePage() {
       const intlData = await fetchAllOutletData(internationalOutlets, (p) => setAnalysisProgress(Math.round(p * 0.15)));
       const pkData = await fetchAllOutletData(pakistaniOutlets, (p) => setAnalysisProgress(15 + Math.round(p * 0.15)));
 
+      // Sync fetched headlines with NewsArticlesDB so they show up in News Feed
+      const syncHeadlinesToDB = (data: any[], country: string) => {
+        const articles: Omit<NewsArticle, "id" | "createdAt" | "updatedAt">[] = [];
+        data.forEach(outlet => {
+          (outlet.headlines || []).forEach((headline: string) => {
+            // Create a synthetic but deterministic URL for deduplication
+            const cleanOutlet = outlet.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const cleanHeadline = headline.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 50);
+            const syntheticUrl = `https://${cleanOutlet}.com/news/${cleanHeadline}`;
+            
+            articles.push({
+              title: headline,
+              description: `Fetched during automated bias audit of ${outlet.name}.`,
+              url: syntheticUrl,
+              source: outlet.name,
+              author: "AI Analyst",
+              publishedAt: new Date().toISOString(),
+              country: country,
+              category: "General",
+              imageUrl: null,
+              fetchedVia: "lm-studio",
+              analysisId: null
+            });
+          });
+        });
+        if (articles.length > 0) NewsArticlesDB.bulkUpsert(articles);
+      };
+
+      if (intlData.length > 0) syncHeadlinesToDB(intlData, "intl");
+      if (pkData.length > 0) syncHeadlinesToDB(pkData, "pk");
+
       // 2. Analyze International (30-60%)
       let intlAnalysis = liveInternational;
       if (intlData.length > 0) {
@@ -236,6 +278,27 @@ export default function AnalyzePage() {
             (o) => newIntlAnalysis.find((n) => n.outlet === o.outlet) || o
           );
           setLiveInternational(intlAnalysis);
+
+          // Persist results to Audit History
+          newIntlAnalysis.forEach(res => {
+            AnalysisResultsDB.create({
+              articleId: null,
+              source: res.outlet,
+              inputText: "Automated geopolitical audit of headlines.",
+              dominantBias: res.dominant_bias,
+              secondaryBias: res.secondary_bias,
+              confidence: res.confidence,
+              analysis: res.analysis,
+              keyThemes: res.key_themes,
+              narrativeTone: res.narrative_tone,
+              cognitiveBiases: res.cognitive_biases || [],
+              logicalFallacies: res.logical_fallacies || [],
+              psychologicalIndicators: res.psychological_indicators || [],
+              sociologicalIndicators: res.sociological_indicators || [],
+              premises: res.premises || [],
+              conclusions: res.conclusions || [],
+            });
+          });
         } catch (error) {
           console.error("Failed to analyze international outlets:", error);
         }
@@ -250,6 +313,27 @@ export default function AnalyzePage() {
             (o) => newPkAnalysis.find((n) => n.outlet === o.outlet) || o
           );
           setLivePakistan(pkAnalysis);
+
+          // Persist results to Audit History
+          newPkAnalysis.forEach(res => {
+            AnalysisResultsDB.create({
+              articleId: null,
+              source: res.outlet,
+              inputText: "Automated national infrastructure audit.",
+              dominantBias: res.dominant_bias,
+              secondaryBias: res.secondary_bias,
+              confidence: res.confidence,
+              analysis: res.analysis,
+              keyThemes: res.key_themes,
+              narrativeTone: res.narrative_tone,
+              cognitiveBiases: res.cognitive_biases || [],
+              logicalFallacies: res.logical_fallacies || [],
+              psychologicalIndicators: res.psychological_indicators || [],
+              sociologicalIndicators: res.sociological_indicators || [],
+              premises: res.premises || [],
+              conclusions: res.conclusions || [],
+            });
+          });
         } catch (error) {
           console.error("Failed to analyze Pakistani outlets:", error);
         }
@@ -298,6 +382,7 @@ export default function AnalyzePage() {
     
     AnalysisResultsDB.create({
       articleId: article.id,
+      source: article.source,
       inputText: textToAnalyze,
       dominantBias: result.dominant_bias,
       secondaryBias: result.secondary_bias,
@@ -305,10 +390,12 @@ export default function AnalyzePage() {
       analysis: result.analysis,
       keyThemes: result.key_themes,
       narrativeTone: result.narrative_tone,
-      cognitiveBiases: [],
-      logicalFallacies: [],
-      premises: [],
-      conclusions: [],
+      cognitiveBiases: result.cognitive_biases || [],
+      logicalFallacies: result.logical_fallacies || [],
+      psychologicalIndicators: result.psychological_indicators || [],
+      sociologicalIndicators: result.sociological_indicators || [],
+      premises: result.premises || [],
+      conclusions: result.conclusions || [],
     });
 
     // Link analysis to article
@@ -603,6 +690,8 @@ export default function AnalyzePage() {
               chartConfig={chartConfig}
               prepareDistributionData={prepareDistributionData}
               biasColors={biasColors}
+              history={AnalysisResultsDB.getRecent(100).filter(a => a.source !== "Manual Input")}
+              onSelectHistory={(a) => setSelectedHistoricalAnalysis(a)}
             />
           </TabsContent>
 
@@ -629,6 +718,31 @@ export default function AnalyzePage() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Forensic Report Dialog for Historical Audits */}
+      <Dialog open={!!selectedHistoricalAnalysis} onOpenChange={(open) => !open && setSelectedHistoricalAnalysis(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] bg-slate-950 border-slate-800 text-white overflow-hidden p-0">
+          <DialogHeader className="p-6 border-b border-slate-800 bg-slate-900/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                  <ShieldCheck className="h-6 w-6 text-purple-500" />
+                  Forensic Audit Report
+                </DialogTitle>
+                <p className="text-xs text-slate-500 mt-1">
+                  Source: <span className="text-purple-400 font-bold">{selectedHistoricalAnalysis?.source}</span> • 
+                  Audited on {selectedHistoricalAnalysis && new Date(selectedHistoricalAnalysis.createdAt).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </DialogHeader>
+          <ScrollArea className="flex-1 overflow-y-auto p-6 bg-slate-950">
+            {selectedHistoricalAnalysis && (
+              <AnalyzeResultDisplay result={selectedHistoricalAnalysis} />
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

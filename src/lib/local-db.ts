@@ -44,6 +44,7 @@ export interface NewsArticle extends DBRecord {
 
 export interface AnalysisResult extends DBRecord {
   articleId: string | null; // FK to news_articles.id (null for custom text)
+  source: string; // The origin of the text/article
   inputText: string; // the text that was analyzed
   dominantBias: string;
   secondaryBias: string;

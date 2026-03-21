@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +13,7 @@ import {
   Activity, Target, Play, Clock, ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { type AnalysisResult } from "@/lib/local-db";
 
 export interface DashboardTabProps {
   liveInternational: any[];
@@ -19,6 +22,8 @@ export interface DashboardTabProps {
   chartConfig: ChartConfig;
   prepareDistributionData: (outlets: any[]) => any[];
   biasColors: Record<string, string>;
+  history?: AnalysisResult[];
+  onSelectHistory?: (analysis: AnalysisResult) => void;
 }
 
 // Intensity icon
@@ -88,6 +93,8 @@ export function DashboardTab({
   chartConfig,
   prepareDistributionData,
   biasColors,
+  history = [],
+  onSelectHistory,
 }: DashboardTabProps) {
   const [expandedOutlets, setExpandedOutlets] = useState<Record<string, boolean>>({});
 
@@ -95,7 +102,7 @@ export function DashboardTab({
     setExpandedOutlets(prev => ({ ...prev, [name]: !prev[name] }));
   };
 
-  const renderOutletCard = (outlet: any, type: "international" | "pakistan") => {
+  const renderOutletCard = (outlet: { outlet: string; dominant_bias: string; secondary_bias: string; confidence: number; analysis: string; last_fetched?: string; key_themes?: string[]; narrative_tone?: string; logical_fallacies?: any[]; cognitive_biases?: any[]; }, type: "international" | "pakistan") => {
     const isExpanded = expandedOutlets[outlet.outlet];
     const accentColor = type === "international" ? "blue" : "emerald";
     const accentHex = type === "international" ? "#3b82f6" : "#10b981";
@@ -148,14 +155,14 @@ export function DashboardTab({
 
           {/* Summary Indicators */}
           <div className="flex flex-wrap gap-2 pt-2">
-            {(outlet.logical_fallacies?.length > 0) && (
+            {((outlet.logical_fallacies?.length ?? 0) > 0) && (
               <Badge variant="outline" className="text-[9px] bg-red-500/5 border-red-500/20 text-red-500 py-0 px-2 rounded-full font-bold">
-                 <AlertTriangle className="h-2.5 w-2.5 mr-1" /> {outlet.logical_fallacies.length} Fallacies
+                 <AlertTriangle className="h-2.5 w-2.5 mr-1" /> {(outlet.logical_fallacies || []).length} Fallacies
               </Badge>
             )}
-            {(outlet.cognitive_biases?.length > 0) && (
+            {((outlet.cognitive_biases?.length ?? 0) > 0) && (
               <Badge variant="outline" className="text-[9px] bg-purple-500/5 border-purple-500/20 text-purple-500 py-0 px-2 rounded-full font-bold">
-                 <Brain className="h-2.5 w-2.5 mr-1" /> {outlet.cognitive_biases.length} Biases
+                 <Brain className="h-2.5 w-2.5 mr-1" /> {(outlet.cognitive_biases || []).length} Biases
               </Badge>
             )}
             <Button 
@@ -171,13 +178,13 @@ export function DashboardTab({
           {/* Expanded Detailed Audit */}
           {isExpanded && (
             <div className="mt-5 pt-5 border-t border-slate-800/80 space-y-5 animate-in slide-in-from-top-2 duration-300">
-              {outlet.logical_fallacies?.length > 0 && (
+              {((outlet.logical_fallacies?.length ?? 0) > 0) && (
                 <div className="space-y-2">
                   <div className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-2">
                     <Target className="h-3 w-3" /> Logical Fallacies Audit
                   </div>
                   <div className="grid grid-cols-1 gap-2">
-                    {outlet.logical_fallacies.map((f: any, i: number) => (
+                    {(outlet.logical_fallacies || []).map((f: any, i: number) => (
                       <div key={i} className="p-2 rounded-lg bg-red-500/5 border border-red-500/10 transition-colors hover:bg-red-500/10">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-bold text-red-400">{f.name}</span>
@@ -190,13 +197,13 @@ export function DashboardTab({
                 </div>
               )}
 
-              {outlet.cognitive_biases?.length > 0 && (
+              {((outlet.cognitive_biases?.length ?? 0) > 0) && (
                 <div className="space-y-2">
                    <div className="text-[10px] font-black text-purple-500 uppercase tracking-widest flex items-center gap-2">
                     <Brain className="h-3 w-3" /> Cognitive Bias Filter
                   </div>
                   <div className="grid grid-cols-1 gap-2">
-                    {outlet.cognitive_biases.map((b: any, i: number) => (
+                    {(outlet.cognitive_biases || []).map((b: any, i: number) => (
                       <div key={i} className="p-2 rounded-lg bg-purple-500/5 border border-purple-500/10 transition-colors hover:bg-purple-500/10">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-bold text-purple-400">{b.name}</span>
@@ -244,27 +251,25 @@ export function DashboardTab({
           <CardContent>
             <div className="h-72 w-full">
               <ChartContainer config={chartConfig} className="h-full w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={prepareDistributionData(liveInternational)}>
-                    <defs>
-                      <linearGradient id="barGradientIntl" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                        <stop offset="100%" stopColor="#1d4ed8" stopOpacity={0.3}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="bias" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
-                    <ChartTooltip 
-                      cursor={{ fill: 'rgba(255,255,255,0.05)', radius: 4 }}
-                      content={<ChartTooltipContent />} 
-                    />
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={24} fill="url(#barGradientIntl)">
-                      {prepareDistributionData(liveInternational).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill || "url(#barGradientIntl)"} className="hover:opacity-80 transition-opacity" />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                <BarChart data={prepareDistributionData(liveInternational)}>
+                  <defs>
+                    <linearGradient id="barGradientIntl" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                      <stop offset="100%" stopColor="#1d4ed8" stopOpacity={0.3}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="bias" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
+                  <ChartTooltip 
+                    cursor={{ fill: 'rgba(255,255,255,0.05)', radius: 4 }}
+                    content={<ChartTooltipContent />} 
+                  />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={24} fill="url(#barGradientIntl)">
+                    {prepareDistributionData(liveInternational).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill || "url(#barGradientIntl)"} className="hover:opacity-80 transition-opacity" />
+                    ))}
+                  </Bar>
+                </BarChart>
               </ChartContainer>
             </div>
           </CardContent>
@@ -284,27 +289,25 @@ export function DashboardTab({
           <CardContent>
             <div className="h-72 w-full">
               <ChartContainer config={chartConfig} className="h-full w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={prepareDistributionData(livePakistan)}>
-                    <defs>
-                      <linearGradient id="barGradientPk" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.8}/>
-                        <stop offset="100%" stopColor="#047857" stopOpacity={0.3}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="bias" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
-                    <ChartTooltip 
-                      cursor={{ fill: 'rgba(255,255,255,0.05)', radius: 4 }}
-                      content={<ChartTooltipContent />} 
-                    />
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={24} fill="url(#barGradientPk)">
-                      {prepareDistributionData(livePakistan).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill || "url(#barGradientPk)"} className="hover:opacity-80 transition-opacity" />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                <BarChart data={prepareDistributionData(livePakistan)}>
+                  <defs>
+                    <linearGradient id="barGradientPk" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.8}/>
+                      <stop offset="100%" stopColor="#047857" stopOpacity={0.3}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="bias" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
+                  <ChartTooltip 
+                    cursor={{ fill: 'rgba(255,255,255,0.05)', radius: 4 }}
+                    content={<ChartTooltipContent />} 
+                  />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={24} fill="url(#barGradientPk)">
+                    {prepareDistributionData(livePakistan).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill || "url(#barGradientPk)"} className="hover:opacity-80 transition-opacity" />
+                    ))}
+                  </Bar>
+                </BarChart>
               </ChartContainer>
             </div>
           </CardContent>
@@ -452,6 +455,12 @@ export function DashboardTab({
               >
                 🇵🇰 National Cluster
               </TabsTrigger>
+              <TabsTrigger 
+                value="history" 
+                className="rounded-lg data-[state=active]:bg-purple-600 data-[state=active]:text-white font-bold px-8"
+              >
+                📜 Audit History
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="international" className="mt-0 outline-none">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -461,6 +470,65 @@ export function DashboardTab({
             <TabsContent value="pakistan" className="mt-0 outline-none">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {livePakistan.map((outlet) => renderOutletCard(outlet, "pakistan"))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="history" className="mt-0 outline-none">
+              <div className="space-y-4">
+                {history.length === 0 ? (
+                  <div className="py-20 text-center border-2 border-dashed border-slate-800 rounded-3xl bg-slate-900/50">
+                    <Clock className="h-12 w-12 text-slate-700 mx-auto mb-4" />
+                    <h3 className="text-slate-400 font-bold">No Forensic Audits Recorded</h3>
+                    <p className="text-slate-600 text-sm">Initiate the Analysis Hub to begin tracking ideological drift.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3">
+                    {history.map((log) => (
+                      <Card 
+                        key={log.id} 
+                        className="bg-slate-900/40 border-slate-800/50 hover:border-purple-500/50 transition-all cursor-pointer group"
+                        onClick={() => onSelectHistory?.(log)}
+                      >
+                        <CardContent className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 group-hover:bg-purple-500/20 transition-colors">
+                              <Target className="h-5 w-5 text-purple-400" />
+                            </div>
+                            <div>
+                              <h4 className="text-white font-bold text-sm leading-none mb-1">{log.source}</h4>
+                              <p className="text-[10px] text-slate-500 font-mono">
+                                {new Date(log.createdAt).toLocaleString(undefined, { 
+                                  dateStyle: 'medium', 
+                                  timeStyle: 'short' 
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-6">
+                            <div className="text-right">
+                              <Badge 
+                                variant="outline" 
+                                style={{
+                                  borderColor: biasColors[log.dominantBias] || "#64748b",
+                                  backgroundColor: (biasColors[log.dominantBias] || "#64748b") + "10",
+                                  color: biasColors[log.dominantBias] || "#94a3b8"
+                                }}
+                                className="font-bold border-2"
+                              >
+                                {log.dominantBias}
+                              </Badge>
+                            </div>
+                            <Button variant="ghost" size="sm" className="text-purple-400 hover:text-purple-300 hover:bg-purple-400/10 font-bold text-xs uppercase tracking-tighter">
+                              Review Audit
+                              <Play className="h-3 w-3 ml-2" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>
