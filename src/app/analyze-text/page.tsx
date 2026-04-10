@@ -131,6 +131,11 @@ export default function AnalyzeTextPage() {
         sociologicalIndicators: biasResult.sociological_indicators || [],
         premises: biasResult.premises || [],
         conclusions: biasResult.conclusions || [],
+        // Dynamic entity relations from AI
+        entityRelations: biasResult.entity_relations || [],
+        narrativePosition: biasResult.narrative_position || "",
+        alignedNarratives: biasResult.aligned_narratives || [],
+        opposedNarratives: biasResult.opposed_narratives || [],
       });
       setResult(stored);
       // Refresh history immediately

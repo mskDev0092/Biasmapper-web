@@ -65,6 +65,17 @@ export interface AnalysisResult extends DBRecord {
   sociologicalIndicators: SociologicalIndicatorEntry[];
   premises: string[];
   conclusions: string[];
+  // Dynamic entity relations from AI analysis
+  entityRelations?: {
+    entity_id: string;
+    entity_name: string;
+    entity_type: string;
+    relation: "accepter" | "opposer" | "neutral" | "unknown";
+    reasoning: string;
+  }[];
+  narrativePosition?: string;
+  alignedNarratives?: string[];
+  opposedNarratives?: string[];
 }
 
 export interface CognitiveBiasEntry {

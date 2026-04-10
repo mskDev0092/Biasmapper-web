@@ -163,6 +163,14 @@ Analyze text content and provide:
 
 Always respond in valid JSON format.`;
 
+export interface EntityRelation {
+  entity_id: string;
+  entity_name: string;
+  entity_type: string;
+  relation: "accepter" | "opposer" | "neutral" | "unknown";
+  reasoning: string;
+}
+
 export interface BiasAnalysis {
   dominant_bias: string;
   secondary_bias: string;
@@ -192,6 +200,11 @@ export interface BiasAnalysis {
   }>;
   premises: string[];
   conclusions: string[];
+  // Dynamic entity relations - AI determines based on narrative
+  entity_relations: EntityRelation[];
+  narrative_position: string;
+  aligned_narratives: string[];
+  opposed_narratives: string[];
 }
 
 export async function analyzeTextBias(
@@ -213,6 +226,16 @@ Return ONLY valid JSON. Your analysis MUST include:
 5. Psychological Indicators: Identify emotional framing, fear-mongering, or persuasion techniques (intensity: low|medium|high).
 6. Sociological Indicators: Identify group dynamics, in-group/out-group distinctions, or power structures (impact: low|medium|high).
 7. Logical Structure: Explicitly list the observed premises and the conclusions drawn.
+8. Entity Relations: Identify entities (countries, organizations, politicians, etc.) that would ACCEPT/SUPPORT this narrative vs OPPOSE/CRITICIZE it - based on the narrative's position and ideological alignment.
+9. Aligned Narratives: List what narratives/positions this content aligns with.
+10. Opposed Narratives: List what narratives/positions this content opposes.
+
+For entity relations, consider:
+- Countries: Based on geopolitics, alliances, ideology
+- Organizations: Based on mission, funding, ideology
+- Politicians/Parties: Based on political alignment
+- Media: Based on ownership and editorial stance
+- Think tanks: Based on funding and ideology
 
 JSON STRUCTURE:
 {
@@ -227,7 +250,11 @@ JSON STRUCTURE:
   "psychological_indicators": [{"name": "Name", "description": "Desc", "intensity": "low|medium|high"}],
   "sociological_indicators": [{"name": "Name", "description": "Desc", "impact": "low|medium|high"}],
   "premises": ["Premise 1", "Premise 2"],
-  "conclusions": ["Conclusion 1"]
+  "conclusions": ["Conclusion 1"],
+  "entity_relations": [{"entity_id": "us", "entity_name": "United States", "entity_type": "country", "relation": "accepter|opposer|neutral", "reasoning": "Why accepts/opposes this narrative"}],
+  "narrative_position": "Where this content stands on key debates",
+  "aligned_narratives": ["Position narrative A", "Position narrative B"],
+  "opposed_narratives": ["Position narrative C", "Position narrative D"]
 }`;
 
   const response = await createChatCompletion([
@@ -288,6 +315,25 @@ JSON STRUCTURE:
             premises: Array.isArray(parsed.premises) ? parsed.premises : [],
             conclusions: Array.isArray(parsed.conclusions)
               ? parsed.conclusions
+              : [],
+            // Dynamic entity relations from AI analysis
+            entity_relations: Array.isArray(parsed.entity_relations)
+              ? parsed.entity_relations.map((e: any) => ({
+                  entity_id: e.entity_id || e.id || "",
+                  entity_name: e.entity_name || e.name || "",
+                  entity_type: e.entity_type || e.type || "other",
+                  relation: (e.relation === "accepter" || e.relation === "opposer" || e.relation === "neutral" || e.relation === "unknown") 
+                    ? e.relation 
+                    : "unknown",
+                  reasoning: e.reasoning || e.reason || "",
+                }))
+              : [],
+            narrative_position: parsed.narrative_position || "",
+            aligned_narratives: Array.isArray(parsed.aligned_narratives)
+              ? parsed.aligned_narratives
+              : [],
+            opposed_narratives: Array.isArray(parsed.opposed_narratives)
+              ? parsed.opposed_narratives
               : [],
           };
         }
