@@ -55,7 +55,11 @@ export default function AnalyzeTextPage() {
     changes_made: string[];
   } | null>(null);
   const [history, setHistory] = useState<AnalysisResult[]>([]);
-  const isConfigured = isAPIConfigured();
+  // Hydration-safe API config handling
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  const apiConfigured = isAPIConfigured();
+  const canAnalyze = mounted ? apiConfigured : false;
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -105,11 +109,11 @@ export default function AnalyzeTextPage() {
   }, [debiasResult]);
 
   const handleAnalyze = async () => {
-    if (!customText.trim() || !isConfigured) return;
+    if (!customText.trim() || !canAnalyze) return;
     setAnalyzing(true);
     setResult(null);
     setDebiasResult(null);
-    try {
+  try {
       const biasResult = await analyzeTextBias(customText);
       const stored = AnalysisResultsDB.create({
         articleId: null,
@@ -139,7 +143,7 @@ export default function AnalyzeTextPage() {
   };
 
   const handleDebias = async () => {
-    if (!customText.trim() || !isConfigured) return;
+    if (!customText.trim() || !canAnalyze) return;
     setDebiasing(true);
     try {
       const res = await debiasText(customText);
@@ -182,10 +186,10 @@ export default function AnalyzeTextPage() {
 
         <Tabs defaultValue="input" className="space-y-6">
           <TabsList className="bg-slate-900/50 border border-slate-800 p-1">
-            <TabsTrigger value="input" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest px-8">
+              <TabsTrigger value="input" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest px-8">
               <Activity className="h-3 w-3 mr-2" /> Intelligence Input
             </TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest px-8">
+              <TabsTrigger value="history" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest px-8">
               <History className="h-3 w-3 mr-2" /> Generation History
             </TabsTrigger>
           </TabsList>
@@ -216,15 +220,15 @@ export default function AnalyzeTextPage() {
                   />
                   <div className="flex justify-between items-center text-[10px] font-bold text-slate-600 uppercase tracking-widest">
                     <span>{customText.length} characters</span>
-                    <span className={isConfigured ? "text-emerald-500" : "text-amber-500"}>
-                      {isConfigured ? "AI Ready" : "API Required"}
+                    <span className={mounted ? (apiConfigured ? "text-emerald-500" : "text-amber-500") : "text-amber-500"}>
+                      {mounted ? (apiConfigured ? "AI Ready" : "API Required") : "API Required"}
                     </span>
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   <Button
                     onClick={handleAnalyze}
-                    disabled={!customText.trim() || !isConfigured || analyzing}
+                    disabled={!customText.trim() || !canAnalyze || analyzing}
                     className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-11 px-8 shadow-lg shadow-indigo-500/20"
                   >
                     {analyzing ? (
@@ -235,7 +239,7 @@ export default function AnalyzeTextPage() {
                   </Button>
                   <Button
                     onClick={handleDebias}
-                    disabled={!customText.trim() || !isConfigured || debiasing}
+                    disabled={!customText.trim() || !canAnalyze || debiasing}
                     variant="outline"
                     className="border-slate-800 bg-slate-800/20 text-slate-300 hover:bg-slate-800 h-11 px-8"
                   >
@@ -372,7 +376,7 @@ export default function AnalyzeTextPage() {
         </Tabs>
 
         {/* No API Warning */}
-        {!isConfigured && (
+        {mounted && !canAnalyze && (
           <Card className="bg-amber-900/20 border-amber-700">
             <CardContent className="pt-6 flex items-center gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
