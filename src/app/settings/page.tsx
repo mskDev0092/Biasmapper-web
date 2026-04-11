@@ -292,6 +292,22 @@ export default function SettingsPage() {
           </CardHeader>
         </Card>
 
+        {/* Security & Usage Warning */}
+        <Card className="mb-6 border-amber-500/30 bg-amber-500/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-amber-400 text-sm">
+              <Shield className="h-4 w-4" />
+              Security & Usage Notice
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-slate-400 space-y-2">
+            <p>• API keys are stored locally in your browser - no server-side storage</p>
+            <p>• For cloud providers (OpenAI, Together AI, Groq), rotate API keys periodically</p>
+            <p>• Local models (Ollama, LM-Studio) are recommended for privacy-sensitive analysis</p>
+            <p>• Full cloud features (web search, live data) require API credits - use locally when possible</p>
+          </CardContent>
+        </Card>
+
         {/* Configuration Form */}
         <div className="space-y-6">
           {/* Provider Selection */}

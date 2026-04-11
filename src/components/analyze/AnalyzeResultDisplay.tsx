@@ -89,67 +89,6 @@ export function AnalyzeResultDisplay({ result }: AnalyzeResultDisplayProps) {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Dynamic Entity Relations Map - shows after analysis runs */}
-      {result.inputText && (
-        <Card className="bg-slate-900/60 border-slate-800 backdrop-blur-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-white text-sm font-bold flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-emerald-500" />
-              Dynamic Entity Relations Map
-            </CardTitle>
-            <CardDescription className="text-slate-400 text-xs">
-              {fromAI ? 'AI-powered analysis' : 'Narrative-based derivation'} • {accepts.length} aligned • {opposes.length} opposed
-              {result.narrativePosition && ` • ${result.narrativePosition}`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="py-2">
-            <WorldMap accepters={accepts} opposers={opposes} />
-            {/* Entity Lists by Type */}
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="space-y-2">
-                <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                  <span>Aligned / Accepters</span>
-                  <Badge variant="outline" className="text-emerald-400 border-emerald-400/30">{accepts.length}</Badge>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {accepts.slice(0, 15).map(id => {
-                    const entity = ENTITIES.find(e => e.id === id) || COUNTRIES.find(c => c.code === id);
-                    return entity ? (
-                      <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 text-xs border border-emerald-500/30" title={entity.name}>
-                        {'flag' in entity ? <span>{entity.flag}</span> : null}
-                        <span className="font-medium">{id.toUpperCase()}</span>
-                      </span>
-                    ) : null;
-                  })}
-                  {accepts.length > 15 && <span className="text-emerald-400/60 text-xs">+{accepts.length - 15} more</span>}
-                  {accepts.length === 0 && <span className="text-slate-500 text-xs">None detected</span>}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-2">
-                  <span>Opposed / Critics</span>
-                  <Badge variant="outline" className="text-red-400 border-red-400/30">{opposes.length}</Badge>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {opposes.slice(0, 15).map(id => {
-                    const entity = ENTITIES.find(e => e.id === id) || COUNTRIES.find(c => c.code === id);
-                    return entity ? (
-                      <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/15 text-red-400 text-xs border border-red-500/30" title={entity.name}>
-                        {'flag' in entity ? <span>{entity.flag}</span> : null}
-                        <span className="font-medium">{id.toUpperCase()}</span>
-                      </span>
-                    ) : null;
-                  })}
-                  {opposes.length > 15 && (
-                    <span className="text-red-400/60 text-xs">+{opposes.length - 15} more</span>
-                  )}
-                  {opposes.length === 0 && <span className="text-slate-500 text-xs">None detected</span>}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
       {/* Overview & Bias Axis */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
         {/* Main Analysis Card */}
@@ -521,6 +460,68 @@ export function AnalyzeResultDisplay({ result }: AnalyzeResultDisplayProps) {
                   ? `${result.inputText.substring(0, 500)}...` 
                   : result.inputText}
               </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Dynamic Entity Relations Map - after analyzed content */}
+      {(accepts.length > 0 || opposes.length > 0) && (
+        <Card className="bg-slate-900/60 border-slate-800 backdrop-blur-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white text-sm font-bold flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-emerald-500" />
+              Dynamic Entity Relations Map
+            </CardTitle>
+            <CardDescription className="text-slate-400 text-xs">
+              {fromAI ? 'AI-powered analysis' : 'Narrative-based derivation'} • {accepts.length} aligned • {opposes.length} opposed
+              {result.narrativePosition && ` • ${result.narrativePosition}`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="py-2">
+            <WorldMap accepters={accepts} opposers={opposes} />
+            {/* Entity Lists */}
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                  <span>Aligned / Accepters</span>
+                  <Badge variant="outline" className="text-emerald-400 border-emerald-400/30">{accepts.length}</Badge>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {accepts.slice(0, 15).map(id => {
+                    const entity = ENTITIES.find(e => e.id === id) || COUNTRIES.find(c => c.code === id);
+                    return entity ? (
+                      <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 text-xs border border-emerald-500/30" title={entity.name}>
+                        {'flag' in entity ? <span>{entity.flag}</span> : null}
+                        <span className="font-medium">{id.toUpperCase()}</span>
+                      </span>
+                    ) : null;
+                  })}
+                  {accepts.length > 15 && <span className="text-emerald-400/60 text-xs">+{accepts.length - 15} more</span>}
+                  {accepts.length === 0 && <span className="text-slate-500 text-xs">None detected</span>}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-2">
+                  <span>Opposed / Critics</span>
+                  <Badge variant="outline" className="text-red-400 border-red-400/30">{opposes.length}</Badge>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {opposes.slice(0, 15).map(id => {
+                    const entity = ENTITIES.find(e => e.id === id) || COUNTRIES.find(c => c.code === id);
+                    return entity ? (
+                      <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/15 text-red-400 text-xs border border-red-500/30" title={entity.name}>
+                        {'flag' in entity ? <span>{entity.flag}</span> : null}
+                        <span className="font-medium">{id.toUpperCase()}</span>
+                      </span>
+                    ) : null;
+                  })}
+                  {opposes.length > 15 && (
+                    <span className="text-red-400/60 text-xs">+{opposes.length - 15} more</span>
+                  )}
+                  {opposes.length === 0 && <span className="text-slate-500 text-xs">None detected</span>}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
