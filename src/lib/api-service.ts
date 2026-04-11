@@ -211,51 +211,59 @@ export async function analyzeTextBias(
   text: string,
   outletName?: string,
 ): Promise<BiasAnalysis> {
-  const prompt = `Analyze the following ${outletName ? `from "${outletName}"` : ""} content for bias, cognitive errors, and logical flaws:
+  const prompt = `You are a political and media bias analyst. Analyze the following content comprehensively.
 
 TEXT TO ANALYZE:
 """
 ${text}
 """
+${outletName ? `\nSource: ${outletName}` : ''}
 
-Return ONLY valid JSON. Your analysis MUST include:
-1. Dominant and Secondary Bias codes (L++, L+, L, C, R, R+, R++, T++, T+, T, B, B+, B++).
-2. Confidence level (0.0-1.0).
-3. Cognitive Biases: Identify specific biases (e.g., Confirmation Bias, Anchoring) with descriptions and severity.
-4. Logical Fallacies: Identify flaws in reasoning (e.g., Ad Hominem, Strawman) with descriptions and severity.
-5. Psychological Indicators: Identify emotional framing, fear-mongering, or persuasion techniques (intensity: low|medium|high).
-6. Sociological Indicators: Identify group dynamics, in-group/out-group distinctions, or power structures (impact: low|medium|high).
-7. Logical Structure: Explicitly list the observed premises and the conclusions drawn.
-8. Entity Relations: Identify entities (countries, organizations, politicians, etc.) that would ACCEPT/SUPPORT this narrative vs OPPOSE/CRITICIZE it - based on the narrative's position and ideological alignment.
-9. Aligned Narratives: List what narratives/positions this content aligns with.
-10. Opposed Narratives: List what narratives/positions this content opposes.
+Your task is to identify:
+1. The dominant ideological bias (L++, L+, L, C, R, R+, R++, T++, T+, T, B, B+, B++)
+2. Secondary bias and confidence level (0.0-1.0)
+3. Cognitive biases present (Confirmation Bias, Anchoring, Availability Heuristic, etc.)
+4. Logical fallacies (Ad Hominem, Strawman, False Dichotomy, etc.)
+5. Psychological tactics (fear-mongering, appeal to emotion, loaded language, etc.)
+6. Sociological patterns (in-group/out-group, power dynamics, class analysis, etc.)
+7. Logical structure - explicit premises and conclusions
+8. **MOST IMPORTANT**: Entity Relations - Determine which real-world entities would SUPPORT or OPPOSE this narrative based on:
+   - Their stated positions, ideology, and alliances
+   - geopolitical interests and historical relationships
+   - organizational mission and funding sources
+   - political party/platform alignment
+   - editorial stance and ownership
 
-For entity relations, consider:
-- Countries: Based on geopolitics, alliances, ideology
-- Organizations: Based on mission, funding, ideology
-- Politicians/Parties: Based on political alignment
-- Media: Based on ownership and editorial stance
-- Think tanks: Based on funding and ideology
+Focus on these entity types:
+- Countries: us, cn, ru, gb, in, pk, jp, de, fr, il, ir, br, au, ua
+- Organizations: UN, NATO, EU, WHO, NATO, think tanks (Brookings, Heritage, Chatham House), NGOs
+- Politicians/Parties: Trump, Biden, Putin, Xi, Modi, Boris, Macron, etc.
+- Media: CNN, Fox, BBC, RT, Xinhua, Al Jazeera, NYT, Guardian
+- Think Tanks: CFR, Carnegie, RAND, Heritage, Cato, Chatham House
 
-JSON STRUCTURE:
+Return ONLY valid JSON with this exact structure:
 {
   "dominant_bias": "CODE",
-  "secondary_bias": "CODE", 
+  "secondary_bias": "CODE",
   "confidence": 0.0-1.0,
-  "analysis": "Comprehensive explanation",
-  "key_themes": ["theme1", "theme2"],
-  "narrative_tone": "Description",
-  "cognitive_biases": [{"name": "Name", "description": "Desc", "severity": "low|medium|high"}],
-  "logical_fallacies": [{"name": "Name", "description": "Desc", "severity": "low|medium|high"}],
-  "psychological_indicators": [{"name": "Name", "description": "Desc", "intensity": "low|medium|high"}],
-  "sociological_indicators": [{"name": "Name", "description": "Desc", "impact": "low|medium|high"}],
-  "premises": ["Premise 1", "Premise 2"],
-  "conclusions": ["Conclusion 1"],
-  "entity_relations": [{"entity_id": "us", "entity_name": "United States", "entity_type": "country", "relation": "accepter|opposer|neutral", "reasoning": "Why accepts/opposes this narrative"}],
-  "narrative_position": "Where this content stands on key debates",
-  "aligned_narratives": ["Position narrative A", "Position narrative B"],
-  "opposed_narratives": ["Position narrative C", "Position narrative D"]
-}`;
+  "analysis": "2-3 sentence summary of the content's ideological position and key claims",
+  "key_themes": ["theme1", "theme2", "theme3"],
+  "narrative_tone": "one word: optimistic|pessimistic|neutral|alarmist|provocative|measured",
+  "cognitive_biases": [{"name": "Bias Name", "description": "How it manifests in text", "severity": "low|medium|high"}],
+  "logical_fallacies": [{"name": "Fallacy Name", "description": "Where it appears", "severity": "low|medium|high"}],
+  "psychological_indicators": [{"name": "Technique", "description": "How used", "intensity": "low|medium|high"}],
+  "sociological_indicators": [{"name": "Pattern", "description": "Group dynamic observed", "impact": "low|medium|high"}],
+  "premises": ["explicit premise 1", "premise 2"],
+  "conclusions": ["explicit conclusion 1"],
+  "entity_relations": [
+    {"entity_id": "us", "entity_name": "United States", "entity_type": "country", "relation": "accepter|opposer|neutral", "reasoning": "concise reason"}
+  ],
+  "narrative_position": "short phrase describing position (e.g., 'pro-Western democracy, anti-China')",
+  "aligned_narratives": ["aligned narrative 1", "aligned narrative 2"],
+  "opposed_narratives": ["opposed narrative 1", "opposed narrative 2"]
+}
+
+Provide at least 3-5 entity_relations for meaningful analysis. Use neutral if unclear.`;
 
   const response = await createChatCompletion([
     { role: "system", content: BIASMAPPER_SYSTEM_PROMPT },

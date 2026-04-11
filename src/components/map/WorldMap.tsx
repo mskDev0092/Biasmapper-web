@@ -19,6 +19,7 @@ const REL_COLORS = {
 } as const;
 
 const COORDS: Record<string, { x: number; y: number }> = {
+  // Major countries
   us: { x: 120, y: 100 },
   ca: { x: 90, y: 80 },
   mx: { x: 110, y: 130 },
@@ -27,6 +28,8 @@ const COORDS: Record<string, { x: number; y: number }> = {
   fr: { x: 220, y: 85 },
   it: { x: 240, y: 90 },
   es: { x: 205, y: 95 },
+  pl: { x: 260, y: 70 },
+  nl: { x: 230, y: 70 },
   ru: { x: 320, y: 50 },
   cn: { x: 400, y: 95 },
   jp: { x: 480, y: 90 },
@@ -43,6 +46,13 @@ const COORDS: Record<string, { x: number; y: number }> = {
   eg: { x: 330, y: 130 },
   il: { x: 320, y: 120 },
   ir: { x: 330, y: 115 },
+  sa: { x: 310, y: 130 },
+  ua: { x: 290, y: 70 },
+  // Additional for entity matching
+  qa: { x: 350, y: 145 },
+  gr: { x: 270, y: 100 },
+  va: { x: 250, y: 95 },
+  rs: { x: 280, y: 85 },
 };
 
 function getCoordsFor(code: string): { x: number; y: number } {
