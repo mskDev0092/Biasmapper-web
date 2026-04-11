@@ -392,6 +392,10 @@ export async function analyzeMultipleOutlets(
         sociological_indicators: [],
         premises: [],
         conclusions: [],
+        entity_relations: [],
+        narrative_position: "",
+        aligned_narratives: [],
+        opposed_narratives: [],
       });
     }
 
